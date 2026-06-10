@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>BACKROOMS // hunt</title>
 <style>
   :root{--void:#0a0a06;--phosphor:#39ff7a;--phosphor-dim:#1a6e3a;--ice:#6fd6ff;--bleed:#ff2e4d;--ink:#7fffb0;--amber:#ffb52e;--moho:#c9b458;}
@@ -106,6 +106,120 @@
   #preview-cap{margin-top:10px;font-size:11px;letter-spacing:.16em;color:var(--phosphor-dim)}
   @media(max-width:680px){#preview-frame{width:240px;height:280px}}
   @media(prefers-reduced-motion:reduce){#preview-scan,#preview-rec .dot{animation:none}}
+
+  /* ============ DEVICE SELECT (pre-game interface picker) ============ */
+  #device-select{position:fixed;inset:0;z-index:14;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:4px;padding:24px;
+    background:radial-gradient(ellipse at 50% 38%,#0e1a12 0%,#070a07 60%,#040504 100%);
+    color:var(--phosphor);overflow:hidden;opacity:0;animation:dsIn .5s ease forwards}
+  #device-select.closing{animation:dsOut .42s ease forwards}
+  @keyframes dsIn{from{opacity:0}to{opacity:1}}
+  @keyframes dsOut{from{opacity:1}to{opacity:0;visibility:hidden}}
+  #device-select::before{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
+    background:repeating-linear-gradient(to bottom,rgba(57,255,122,.045) 0,rgba(57,255,122,.045) 1px,transparent 1px,transparent 3px);
+    animation:pvflick 5s infinite}
+  #device-select::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.78) 100%)}
+  .ds-kicker{position:relative;font-size:11px;letter-spacing:.42em;color:var(--phosphor-dim);text-shadow:0 0 6px var(--phosphor-dim)}
+  .ds-title{position:relative;font-size:clamp(30px,7vw,58px);font-weight:800;letter-spacing:.18em;
+    text-shadow:0 0 24px var(--phosphor-dim);margin-top:2px}
+  .ds-sub{position:relative;font-size:13px;letter-spacing:.12em;color:var(--phosphor-dim);margin-top:6px;text-align:center}
+  .ds-cards{position:relative;display:flex;gap:22px;margin-top:34px;flex-wrap:wrap;justify-content:center;max-width:760px}
+  .ds-card{position:relative;width:300px;min-height:300px;cursor:pointer;display:flex;flex-direction:column;
+    align-items:center;text-align:center;padding:30px 26px 24px;background:rgba(16,26,16,.46);
+    border:1px solid var(--phosphor-dim);box-shadow:inset 0 0 40px rgba(0,0,0,.55);-webkit-tap-highlight-color:transparent;
+    transition:transform .18s ease,box-shadow .25s ease,border-color .25s ease,background .25s ease;
+    opacity:0;transform:translateY(24px);animation:cardIn .55s cubic-bezier(.2,.7,.2,1) forwards}
+  .ds-card:nth-child(1){animation-delay:.12s}.ds-card:nth-child(2){animation-delay:.22s}
+  @keyframes cardIn{to{opacity:1;transform:translateY(0)}}
+  .ds-card:hover{transform:translateY(-6px);border-color:var(--phosphor);background:rgba(20,34,18,.6);
+    box-shadow:0 0 34px rgba(57,255,122,.22),inset 0 0 40px rgba(0,0,0,.5)}
+  .ds-card:active{transform:translateY(-2px) scale(.985)}
+  .ds-card.pick{border-color:var(--phosphor);background:rgba(24,40,22,.66);
+    box-shadow:0 0 46px rgba(57,255,122,.34),inset 0 0 30px rgba(57,255,122,.07)}
+  .ds-ico{width:94px;height:94px;margin-bottom:16px;color:var(--phosphor);filter:drop-shadow(0 0 10px var(--phosphor-dim))}
+  .ds-ico svg{width:100%;height:100%;display:block}
+  .ds-name{font-size:21px;font-weight:800;letter-spacing:.16em}
+  .ds-name .en{display:block;font-size:11px;font-weight:600;letter-spacing:.3em;color:var(--phosphor-dim);margin-top:5px}
+  .ds-ctrls{margin-top:15px;font-size:11.5px;line-height:2;color:var(--ink);letter-spacing:.05em;
+    border-top:1px solid rgba(57,255,122,.18);padding-top:14px;width:100%}
+  .ds-ctrls b{color:var(--amber);font-weight:700}
+  .ds-go{margin-top:auto;padding-top:16px;font-size:12px;letter-spacing:.26em;color:var(--phosphor-dim);transition:color .2s,text-shadow .2s}
+  .ds-card:hover .ds-go,.ds-card.pick .ds-go{color:var(--phosphor);text-shadow:0 0 8px var(--phosphor-dim)}
+  .ds-badge{position:absolute;top:-1px;right:-1px;font-size:9px;letter-spacing:.2em;font-weight:700;color:var(--void);
+    background:var(--phosphor);padding:5px 10px;box-shadow:0 0 14px var(--phosphor-dim)}
+  .ds-foot{position:relative;margin-top:28px;font-size:10.5px;letter-spacing:.16em;color:var(--phosphor-dim);text-align:center;opacity:.8}
+  #change-device{position:fixed;top:max(14px,env(safe-area-inset-top));left:max(16px,env(safe-area-inset-left));z-index:11;
+    font-family:inherit;font-size:11px;letter-spacing:.16em;color:var(--phosphor-dim);background:rgba(10,20,12,.42);
+    border:1px solid var(--phosphor-dim);padding:7px 12px;cursor:pointer;pointer-events:auto;display:none;
+    transition:color .15s,border-color .15s}
+  #change-device:hover{color:var(--phosphor);border-color:var(--phosphor)}
+
+  /* ============ ESCAPE-CODE digit boxes + mobile keypad ============ */
+  #code-boxes{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .code-box{width:42px;height:54px;border:1px solid var(--phosphor-dim);background:rgba(0,0,0,.45);
+    display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--ink);
+    text-shadow:0 0 12px var(--phosphor-dim);transition:border-color .15s,box-shadow .15s}
+  .code-box.filled{border-color:var(--phosphor)}
+  .code-box.cursor{border-color:var(--phosphor);box-shadow:0 0 14px var(--phosphor-dim);animation:cbblink 1s steps(1) infinite}
+  @keyframes cbblink{0%,50%{background:rgba(57,255,122,.12)}51%,100%{background:rgba(0,0,0,.45)}}
+  #keypad{display:none;margin-top:20px;grid-template-columns:repeat(3,64px);gap:10px;justify-content:center}
+  #keypad button{font-family:inherit;font-size:22px;font-weight:700;height:58px;cursor:pointer;color:var(--phosphor);
+    background:rgba(12,24,16,.6);border:1px solid var(--phosphor-dim);-webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;transition:transform .07s,background .12s}
+  #keypad button:active{transform:scale(.92);background:rgba(57,255,122,.18)}
+  #keypad .kp-del{color:var(--amber);border-color:rgba(255,181,46,.5)}
+  #keypad .kp-ok{color:var(--void);background:var(--phosphor);border:none;font-weight:800}
+
+  /* ============ TOUCH UI (mobile controls) ============ */
+  #touch-ui{position:fixed;inset:0;z-index:5;pointer-events:none;display:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  #touch-look{position:absolute;inset:0;pointer-events:auto;touch-action:none;z-index:1}
+  #joystick{position:absolute;left:max(26px,env(safe-area-inset-left));bottom:max(30px,env(safe-area-inset-bottom));
+    width:132px;height:132px;border-radius:50%;pointer-events:auto;touch-action:none;z-index:2;
+    background:radial-gradient(circle at center,rgba(57,255,122,.06) 0%,rgba(57,255,122,.02) 60%,transparent 72%);
+    border:1px solid rgba(57,255,122,.35);box-shadow:inset 0 0 26px rgba(0,0,0,.6),0 0 14px rgba(57,255,122,.12)}
+  #joystick::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;transform:translate(-50%,-50%);
+    border-radius:50%;background:rgba(57,255,122,.4)}
+  #joy-thumb{position:absolute;left:50%;top:50%;width:58px;height:58px;border-radius:50%;transform:translate(-50%,-50%);
+    background:radial-gradient(circle at 38% 34%,rgba(57,255,122,.55),rgba(20,60,36,.65));
+    border:1px solid var(--phosphor);box-shadow:0 0 18px rgba(57,255,122,.45);transition:transform .05s linear}
+  #joy-label{position:absolute;left:50%;bottom:-22px;transform:translateX(-50%);font-size:9px;letter-spacing:.24em;
+    color:var(--phosphor-dim);white-space:nowrap}
+  #touch-controls{position:absolute;right:max(22px,env(safe-area-inset-right));bottom:max(26px,env(safe-area-inset-bottom));
+    width:200px;height:200px;pointer-events:none;z-index:2}
+  .touch-btn{position:absolute;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;cursor:pointer;
+    border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:inherit;
+    color:var(--phosphor);background:rgba(12,24,16,.62);border:1px solid var(--phosphor-dim);
+    box-shadow:inset 0 0 18px rgba(0,0,0,.5),0 0 10px rgba(57,255,122,.1);transition:transform .08s ease,background .15s,border-color .15s,opacity .2s}
+  .touch-btn .glyph{font-size:22px;font-weight:800;line-height:1}
+  .touch-btn .cap{font-size:8.5px;letter-spacing:.12em;margin-top:3px;color:var(--phosphor-dim)}
+  .touch-btn.pressed{transform:scale(.9);background:rgba(57,255,122,.22)}
+  .touch-btn.dim{opacity:.3}
+  #btn-action{right:0;bottom:64px;width:86px;height:86px;background:rgba(20,46,28,.7);border-color:var(--phosphor);
+    box-shadow:0 0 18px rgba(57,255,122,.28),inset 0 0 18px rgba(0,0,0,.4)}
+  #btn-action .glyph{font-size:28px}
+  #btn-door{right:92px;bottom:96px;width:64px;height:64px}
+  #btn-rewind{right:18px;bottom:158px;width:60px;height:60px;border-color:rgba(111,214,255,.5);color:var(--ice)}
+  #btn-rewind .cap{color:rgba(111,214,255,.6)}
+  #btn-run{left:calc(max(26px,env(safe-area-inset-left)) + 150px);bottom:max(46px,env(safe-area-inset-bottom));width:74px;height:74px}
+  #btn-run .glyph{font-size:18px}
+  #btn-run.active{background:rgba(57,255,122,.3);border-color:var(--phosphor);color:var(--void);box-shadow:0 0 20px rgba(57,255,122,.42)}
+  #btn-run.active .cap{color:var(--void)}
+  #btn-mute{position:absolute;top:max(12px,env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right));
+    width:46px;height:46px;border-radius:50%;pointer-events:auto;touch-action:none;z-index:2;-webkit-tap-highlight-color:transparent;
+    display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--phosphor);
+    background:rgba(12,24,16,.55);border:1px solid var(--phosphor-dim);cursor:pointer}
+
+  body.mobile .kbd-only{display:none}
+  body:not(.mobile) #keypad{display:none!important}
+  @media(max-width:540px){
+    .ds-card{width:86vw;max-width:340px;min-height:auto;padding:24px 22px}
+    .ds-cards{margin-top:24px;gap:16px}
+    .ds-ico{width:72px;height:72px;margin-bottom:12px}
+    .ds-card .ds-go{padding-top:14px}
+  }
+  @media(prefers-reduced-motion:reduce){#device-select,.ds-card{animation:none!important;opacity:1;transform:none}}
 </style>
 </head>
 <body>
@@ -120,8 +234,8 @@
     <div><span class="k">HUNTER</span> <span class="r" id="hud-hunter">searching</span></div>
   </div>
   <div class="corner" id="bl">
-    <div class="k">WASD walk &middot; MOUSE look &middot; SHIFT run</div>
-    <div class="k">E interact &middot; F door &middot; R rewind &middot; ESC release</div>
+    <div class="k kbd-only">WASD walk &middot; MOUSE look &middot; SHIFT run</div>
+    <div class="k kbd-only">E interact &middot; F door &middot; R rewind &middot; ESC release</div>
     <div class="r" style="margin-top:4px">DON'T STARE AT IT — look away to stay stable</div>
     <div class="k" style="margin-top:6px">STAMINA</div>
     <div id="stam-bar"><div id="stam-fill"></div></div>
@@ -136,15 +250,20 @@
 <div id="panel">
   <div class="panelbox">
     <div class="ptitle">ESCAPE TERMINAL</div>
-    <div class="psub">enter the code assembled from the tapes</div>
-    <div id="panel-len" class="plen">_ _ _</div>
-    <div id="panel-entry" class="pentry"></div>
+    <div class="psub">输入磁带拼出的密码 · enter the code from the tapes</div>
+    <div id="code-boxes"></div>
     <div id="panel-msg" class="pmsg"></div>
-    <div class="phint">type digits &middot; Backspace delete &middot; Enter submit &middot; Esc cancel</div>
-    <div class="pbtns"><button id="panel-submit">SUBMIT</button><button id="panel-close">CANCEL</button></div>
+    <div id="keypad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button class="kp-del" data-k="del">⌫</button><button data-k="0">0</button><button class="kp-ok" data-k="ok">✓</button>
+    </div>
+    <div class="phint kbd-only">type digits &middot; Backspace delete &middot; Enter submit &middot; Esc cancel</div>
+    <div class="pbtns"><button id="panel-submit">SUBMIT &middot; 提交</button><button id="panel-close">CANCEL &middot; 取消</button></div>
   </div>
 </div>
-<div id="overlay">
+<div id="overlay" style="display:none">
   <h1 class="flick">BACKROOMS</h1>
   <p>// find every tape before it does — and never look straight at it.</p>
   <div id="menu-cols">
@@ -169,6 +288,64 @@
 </div>
 <div id="end"><h2 class="flick" id="end-title">SIGNAL EXTRACTED</h2><p style="color:var(--phosphor-dim);margin-top:10px" id="end-sub">all tapes recovered — reload for a new floor</p>
   <button id="end-menu">RETURN TO MENU &middot; 返回主页</button>
+</div>
+
+<!-- ============ DEVICE PICKER (shown first) ============ -->
+<button id="change-device" type="button">‹ 切换设备 · DEVICE</button>
+<div id="device-select">
+  <div class="ds-kicker">// SELECT INTERFACE</div>
+  <div class="ds-title flick">BACKROOMS</div>
+  <div class="ds-sub">选择你的操作设备 — choose how you'll play</div>
+  <div class="ds-cards">
+    <button class="ds-card" id="ds-pc" type="button">
+      <span class="ds-badge" id="badge-pc" style="display:none">推荐 · PICK</span>
+      <span class="ds-ico">
+        <svg viewBox="0 0 72 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="16" width="46" height="30" rx="3.5"/>
+          <line x1="9" y1="23" x2="13" y2="23"/><line x1="17" y1="23" x2="21" y2="23"/><line x1="25" y1="23" x2="29" y2="23"/><line x1="33" y1="23" x2="37" y2="23"/><line x1="41" y1="23" x2="44" y2="23"/>
+          <rect x="20" y="27.5" width="6" height="6" rx="1.2" fill="currentColor" stroke="none"/>
+          <rect x="12" y="35" width="6" height="6" rx="1.2" fill="currentColor" stroke="none"/><rect x="20" y="35" width="6" height="6" rx="1.2" fill="currentColor" stroke="none"/><rect x="28" y="35" width="6" height="6" rx="1.2" fill="currentColor" stroke="none"/>
+          <line x1="37" y1="38" x2="45" y2="38"/>
+          <rect x="56" y="20" width="13" height="22" rx="6.5"/><line x1="62.5" y1="20" x2="62.5" y2="30"/>
+        </svg>
+      </span>
+      <span class="ds-name">电脑端<span class="en">DESKTOP</span></span>
+      <span class="ds-ctrls"><b>WASD</b> 移动 · <b>鼠标</b> 视角<br><b>Shift</b> 奔跑 · <b>E / F / R</b> 交互</span>
+      <span class="ds-go">▸ 进入 ENTER</span>
+    </button>
+    <button class="ds-card" id="ds-mobile" type="button">
+      <span class="ds-badge" id="badge-mobile" style="display:none">推荐 · PICK</span>
+      <span class="ds-ico">
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="16" y="5" width="32" height="54" rx="6"/>
+          <line x1="28" y1="11" x2="36" y2="11"/>
+          <circle cx="32" cy="34" r="4.5" fill="currentColor" stroke="none"/>
+          <path d="M32 22.5 A 11.5 11.5 0 0 1 43.5 34" opacity=".55"/>
+          <path d="M32 18 A 16 16 0 0 1 48 34" opacity=".3"/>
+          <path d="M32 22.5 A 11.5 11.5 0 0 0 20.5 34" opacity=".55"/>
+          <path d="M32 18 A 16 16 0 0 0 16 34" opacity=".3"/>
+          <line x1="26" y1="52" x2="38" y2="52"/>
+        </svg>
+      </span>
+      <span class="ds-name">移动端<span class="en">MOBILE / TOUCH</span></span>
+      <span class="ds-ctrls"><b>左摇杆</b> 移动 · <b>右侧滑动</b> 视角<br><b>按钮</b> 奔跑 / 交互 / 倒带</span>
+      <span class="ds-go">▸ 进入 ENTER</span>
+    </button>
+  </div>
+  <div class="ds-foot">可随时在左上角「切换设备」重新选择 · switch anytime from the menu</div>
+</div>
+
+<!-- ============ TOUCH CONTROLS (mobile) ============ -->
+<div id="touch-ui">
+  <div id="touch-look"></div>
+  <div id="joystick"><div id="joy-thumb"></div><div id="joy-label">MOVE · 移动</div></div>
+  <button id="btn-run" class="touch-btn" type="button"><span class="glyph">⇪</span><span class="cap">奔跑</span></button>
+  <div id="touch-controls">
+    <button id="btn-action" class="touch-btn" type="button"><span class="glyph">E</span><span class="cap">互动</span></button>
+    <button id="btn-door" class="touch-btn" type="button"><span class="glyph">F</span><span class="cap">门</span></button>
+    <button id="btn-rewind" class="touch-btn" type="button"><span class="glyph">R</span><span class="cap">倒带</span></button>
+  </div>
+  <button id="btn-mute" type="button">🔊</button>
 </div>
 
 <script type="importmap">
@@ -435,6 +612,12 @@ const REWIND = {
 };
 const keys={};
 const player={pos:new THREE.Vector3(),yaw:0,pitch:0};   // single floor: no vy, no gravity needed
+/* ---- input mode + touch state ----
+   DEVICE is chosen on the start "interface" screen. On mobile we skip pointer-lock entirely
+   and drive look/move/actions from the on-screen controls instead. */
+let DEVICE='pc';                                  // 'pc' | 'mobile'
+const touch={ enabled:false, move:{x:0,y:0}, sprint:false,
+  moveId:null, lookId:null, lookX:0, lookY:0, joyCx:0, joyCy:0, joyR:55 };
 const PR=1.3;   // player radius
 
 function charTexture(){
@@ -1178,18 +1361,13 @@ function init(){
   addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;
     // ---- escape code panel input ----
     if(state&&state.panelOpen){
-      if(/^[0-9]$/.test(e.key)&&state.entry.length<state.total){
-        state.entry+=e.key;document.getElementById('panel-entry').textContent=state.entry.split('').join(' ');
-      }else if(e.key==='Backspace'){
-        state.entry=state.entry.slice(0,-1);document.getElementById('panel-entry').textContent=state.entry.split('').join(' ');
-      }else if(e.key==='Enter'){ submitCode(); }
+      if(/^[0-9]$/.test(e.key)){ panelInput(e.key); }
+      else if(e.key==='Backspace'){ panelBackspace(); }
+      else if(e.key==='Enter'){ submitCode(); }
       else if(e.key==='Escape'){ closePanel(); }
       return;
     }
-    if(e.key.toLowerCase()==='e'&&state){
-      if(state.nearTape>=0){ pickupTape(state.nearTape); }
-      else if(state.phase==='armed'&&state.nearTerm){ openPanel(); }
-    }
+    if(e.key.toLowerCase()==='e'&&state){ doInteract(); }
     if(e.key.toLowerCase()==='f'&&state&&!state.panelOpen){ tryDoorTeleport(); }
     if(e.key.toLowerCase()==='r'&&state&&!state.panelOpen){ triggerRewind(); }
     if(e.key.toLowerCase()==='o'){   // toggle outline
@@ -1243,6 +1421,7 @@ function init(){
     player.pitch-= my*0.0022;
     player.pitch=Math.max(-1.4,Math.min(1.4,player.pitch));});
   renderer.domElement.addEventListener('click',()=>{
+    if(DEVICE==='mobile')return;
     if(!document.pointerLockElement&&state)renderer.domElement.requestPointerLock();});
   renderer.setAnimationLoop(frame);
 }
@@ -1356,7 +1535,8 @@ function startGame(){
   document.getElementById('hud').style.display='block';
   document.getElementById('cross').style.display='block';
   hudTapes.textContent=`0 / ${state.total}`;
-  renderer.domElement.requestPointerLock();
+  if(DEVICE==='mobile'){ document.getElementById('touch-ui').style.display='block'; resetTouchState(); }
+  lockPointer();
 }
 
 // ---- VHS REWIND: rip the player (and the hunter) back along ~3s of recorded path ----
@@ -1485,8 +1665,12 @@ function updatePlayer(dt){
   // ---- stamina-gated sprint: SHIFT runs only while you have stamina; empty it and
   //      you're "winded" until it recovers past 30%. Forces real chase decisions. ----
   if(state.stam===undefined){state.stam=1;state.winded=false;}
-  const moving=keys['w']||keys['a']||keys['s']||keys['d'];
-  const sprinting=!!keys['shift'] && moving && state.stam>0 && !state.winded;
+  // joystick (mobile) feeds the same movement vector as WASD; analog magnitude preserved
+  const tj = touch.enabled ? touch.move : {x:0,y:0};
+  const joyActive = (tj.x*tj.x + tj.y*tj.y) > 0.0016;
+  const moving=keys['w']||keys['a']||keys['s']||keys['d']||joyActive;
+  const wantSprint = !!keys['shift'] || (touch.enabled && touch.sprint);
+  const sprinting = wantSprint && moving && state.stam>0 && !state.winded;
   if(sprinting){
     state.stam=Math.max(0,state.stam-dt*0.28);            // ~3.6s of sprint from full
     if(state.stam<=0){state.stam=0;state.winded=true;}
@@ -1500,7 +1684,8 @@ function updatePlayer(dt){
   const mv=new THREE.Vector3();
   if(keys['w'])mv.add(fwd);if(keys['s'])mv.sub(fwd);
   if(keys['d'])mv.add(right);if(keys['a'])mv.sub(right);
-  if(mv.lengthSq()>0)mv.normalize().multiplyScalar(sp);
+  if(joyActive){ mv.add(fwd.clone().multiplyScalar(tj.y)); mv.add(right.clone().multiplyScalar(tj.x)); }
+  if(mv.lengthSq()>0){ if(mv.length()>1) mv.normalize(); mv.multiplyScalar(sp); }
   const np=player.pos.clone();np.x+=mv.x;np.z+=mv.z;
   collide2D(np);
   // bounded map: clamp inside the solid border instead of wrapping at the seam
@@ -1564,6 +1749,13 @@ function updatePlayer(dt){
     prompt.style.display='block';prompt.textContent='[ F ]  step through door';
   }else{ prompt.style.display='none'; }
 
+  // mobile: light up the action buttons that are currently usable
+  if(touch.enabled){
+    setTouchAvail('btn-action', (nearTapeIdx>=0) || (state.phase==='armed'&&nearTerm));
+    setTouchAvail('btn-door', !!state.nearDoor);
+    setTouchAvail('btn-rewind', (state.rewindCD||0)<=0 && !state.grabbed);
+  }
+
   // countdown survival
   if(state.phase==='countdown'){
     state.countdown-=dt;
@@ -1588,15 +1780,15 @@ const ESCAPE_SECONDS=45;
 function openPanel(){
   if(state.phase!=='armed'||!state.nearTerm)return;
   state.panelOpen=true;state.entry='';
-  document.exitPointerLock();
+  if(DEVICE!=='mobile') document.exitPointerLock();
   document.getElementById('panel').style.display='flex';
-  document.getElementById('panel-len').textContent='_ '.repeat(state.total).trim();
-  document.getElementById('panel-entry').textContent='';
   document.getElementById('panel-msg').textContent='';
+  document.getElementById('keypad').style.display = (DEVICE==='mobile') ? 'grid' : 'none';
+  renderCodeBoxes();
 }
 function closePanel(){
   state.panelOpen=false;document.getElementById('panel').style.display='none';
-  if(!state.over)renderer.domElement.requestPointerLock();
+  lockPointer();
 }
 function submitCode(){
   const correct=state.password.join('');
@@ -1607,8 +1799,8 @@ function submitCode(){
     // hunter goes into a frenzy: boost during countdown
     hunter.baseSpeed*=1.25;
   }else{
-    document.getElementById('panel-msg').textContent='REJECTED';
-    state.entry='';document.getElementById('panel-entry').textContent='';
+    document.getElementById('panel-msg').textContent='REJECTED · 密码错误';
+    state.entry=''; renderCodeBoxes();
   }
 }
 
@@ -1637,7 +1829,10 @@ function returnToMenu(){
   if(glitchPass)glitchPass.uniforms.uIntensity.value=0;
   document.getElementById('threat').style.opacity='0';
   audioStopAmbient();
+  document.getElementById('touch-ui').style.display='none';
+  resetTouchState();
   document.getElementById('overlay').style.display='flex';
+  document.getElementById('change-device').style.display='block';
 }
 
 function frame(){
@@ -1938,6 +2133,157 @@ document.getElementById('panel-submit').addEventListener('click',submitCode);
 document.getElementById('panel-close').addEventListener('click',closePanel);
 document.getElementById('end-menu').addEventListener('click',returnToMenu);
 
+/* ============================================================
+   INTERFACE LAYER  —  device picker + on-screen touch controls
+   ============================================================ */
+// Only request pointer-lock on desktop; on mobile look is driven by touch.
+function lockPointer(){
+  if(DEVICE==='mobile')return;
+  if(renderer&&state&&!state.over){ try{ renderer.domElement.requestPointerLock(); }catch(e){} }
+}
+// Shared interact (used by [E] key and the mobile action button).
+function doInteract(){
+  if(!state||state.over||state.panelOpen)return;
+  if(state.nearTape>=0){ pickupTape(state.nearTape); }
+  else if(state.phase==='armed'&&state.nearTerm){ openPanel(); }
+}
+// Escape-code entry shared by physical keyboard + on-screen keypad.
+function panelInput(d){ if(state&&state.panelOpen&&state.entry.length<state.total){ state.entry+=d; renderCodeBoxes(); } }
+function panelBackspace(){ if(state&&state.panelOpen){ state.entry=state.entry.slice(0,-1); renderCodeBoxes(); } }
+function renderCodeBoxes(){
+  const box=document.getElementById('code-boxes'); if(!box||!state)return;
+  let html='';
+  for(let i=0;i<state.total;i++){
+    const ch=state.entry[i];
+    const cls='code-box'+(ch!=null?' filled':'')+((i===state.entry.length&&i<state.total)?' cursor':'');
+    html+=`<div class="${cls}">${ch!=null?ch:''}</div>`;
+  }
+  box.innerHTML=html;
+}
+function setTouchAvail(id,ok){ const el=document.getElementById(id); if(el)el.classList.toggle('dim',!ok); }
+function resetTouchState(){
+  touch.move.x=0;touch.move.y=0;touch.sprint=false;touch.moveId=null;touch.lookId=null;
+  const t=document.getElementById('joy-thumb'); if(t)t.style.transform='translate(-50%,-50%)';
+  const r=document.getElementById('btn-run'); if(r)r.classList.remove('active');
+}
+
+function isLikelyMobile(){
+  const ua=navigator.userAgent||navigator.vendor||'';
+  const uaHit=/Mobi|Android|iPhone|iPad|iPod|IEMobile|BlackBerry|Opera Mini|Silk/i.test(ua);
+  const touchHit=('ontouchstart'in window)||navigator.maxTouchPoints>0;
+  const small=Math.min(window.innerWidth,window.innerHeight)<=820;
+  return uaHit || (touchHit && small);
+}
+function chooseDevice(dev){
+  DEVICE=dev; touch.enabled=(dev==='mobile');
+  document.body.classList.toggle('mobile',touch.enabled);
+  const hint=document.getElementById('hint');
+  if(hint){
+    hint.innerHTML = touch.enabled
+      ? '左侧摇杆 移动 · 右侧滑动 视角 · RUN 奔跑 · E 互动 · F 传送门 · R 倒带<br>收集全部磁带，但别盯着它看 —— 而且不是每盘磁带都是真的。'
+      : "WASD move · MOUSE look · SHIFT run · F doors · [ R ] rewind · [ M ] mute<br>collect every tape, but don't stare at it — and not every tape is real.";
+  }
+  const ds=document.getElementById('device-select');
+  ds.classList.add('closing');
+  setTimeout(()=>{ ds.style.display='none'; },430);
+  document.getElementById('overlay').style.display='flex';
+  document.getElementById('change-device').style.display='block';
+}
+function openDevicePicker(){
+  const ds=document.getElementById('device-select');
+  ds.style.display='flex'; ds.classList.remove('closing');
+  ds.style.animation='none'; void ds.offsetWidth; ds.style.animation='';   // replay entrance
+  document.getElementById('overlay').style.display='none';
+  document.getElementById('change-device').style.display='none';
+}
+
+function setupTouchControls(){
+  const look=document.getElementById('touch-look');
+  const joy=document.getElementById('joystick');
+  const thumb=document.getElementById('joy-thumb');
+  const LOOK_SENS=0.0042;
+
+  // ----- LOOK: drag anywhere on the (transparent) look layer -----
+  look.addEventListener('pointerdown',e=>{
+    if(touch.lookId!==null)return;
+    touch.lookId=e.pointerId; touch.lookX=e.clientX; touch.lookY=e.clientY;
+    try{ look.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  look.addEventListener('pointermove',e=>{
+    if(e.pointerId!==touch.lookId)return;
+    // while grabbed or entering a code, freeze the camera but keep tracking the finger
+    if(state&&(state.grabbed||state.panelOpen)){ touch.lookX=e.clientX; touch.lookY=e.clientY; return; }
+    const dx=e.clientX-touch.lookX, dy=e.clientY-touch.lookY;
+    touch.lookX=e.clientX; touch.lookY=e.clientY;
+    player.yaw  -= dx*LOOK_SENS;
+    player.pitch-= dy*LOOK_SENS;
+    player.pitch=Math.max(-1.4,Math.min(1.4,player.pitch));
+  });
+  const endLook=e=>{ if(e.pointerId===touch.lookId) touch.lookId=null; };
+  look.addEventListener('pointerup',endLook);
+  look.addEventListener('pointercancel',endLook);
+
+  // ----- JOYSTICK: drag the thumb within the base; output is normalized -----
+  function setJoy(px,py){
+    let ox=px-touch.joyCx, oy=py-touch.joyCy;
+    const d=Math.hypot(ox,oy)||0.0001, max=touch.joyR;
+    if(d>max){ ox*=max/d; oy*=max/d; }
+    touch.move.x=ox/max; touch.move.y=-oy/max;            // up on screen = forward
+    thumb.style.transform=`translate(calc(-50% + ${ox.toFixed(1)}px),calc(-50% + ${oy.toFixed(1)}px))`;
+  }
+  joy.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    touch.moveId=e.pointerId;
+    const r=joy.getBoundingClientRect();
+    touch.joyCx=r.left+r.width/2; touch.joyCy=r.top+r.height/2; touch.joyR=r.width*0.42;
+    try{ joy.setPointerCapture(e.pointerId); }catch(_){}
+    setJoy(e.clientX,e.clientY);
+  });
+  joy.addEventListener('pointermove',e=>{ if(e.pointerId!==touch.moveId)return; e.preventDefault(); setJoy(e.clientX,e.clientY); });
+  const endJoy=e=>{ if(e.pointerId!==touch.moveId)return; touch.moveId=null; touch.move.x=0; touch.move.y=0; thumb.style.transform='translate(-50%,-50%)'; };
+  joy.addEventListener('pointerup',endJoy);
+  joy.addEventListener('pointercancel',endJoy);
+
+  // ----- action buttons (tap) -----
+  function tapBtn(id,fn){
+    const el=document.getElementById(id); if(!el)return;
+    el.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); el.classList.add('pressed'); fn(); });
+    const up=e=>{ e.preventDefault(); e.stopPropagation(); el.classList.remove('pressed'); };
+    el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('pointerleave',up);
+  }
+  tapBtn('btn-action',()=>doInteract());
+  tapBtn('btn-door',()=>{ if(state&&!state.over&&!state.panelOpen) tryDoorTeleport(); });
+  tapBtn('btn-rewind',()=>{ if(state&&!state.over&&!state.panelOpen) triggerRewind(); });
+
+  // RUN = toggle, so the look finger stays free during a chase
+  const runBtn=document.getElementById('btn-run');
+  if(runBtn) runBtn.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation();
+    touch.sprint=!touch.sprint; runBtn.classList.toggle('active',touch.sprint); });
+
+  const muteBtn=document.getElementById('btn-mute');
+  if(muteBtn) muteBtn.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation();
+    audioToggleMute(); muteBtn.textContent=(typeof AUDIO!=='undefined'&&AUDIO.on)?'🔊':'🔇'; });
+
+  // on-screen keypad for the escape code
+  const kp=document.getElementById('keypad');
+  if(kp) kp.addEventListener('pointerdown',e=>{
+    const b=e.target.closest('button'); if(!b)return; e.preventDefault();
+    const k=b.dataset.k;
+    if(k==='del') panelBackspace(); else if(k==='ok') submitCode(); else panelInput(k);
+  });
+}
+
+function setupInterface(){
+  const rec = isLikelyMobile() ? 'mobile' : 'pc';
+  document.getElementById(rec==='mobile'?'badge-mobile':'badge-pc').style.display='block';
+  document.getElementById(rec==='mobile'?'ds-mobile':'ds-pc').classList.add('pick');
+  document.getElementById('ds-pc').addEventListener('click',()=>chooseDevice('pc'));
+  document.getElementById('ds-mobile').addEventListener('click',()=>chooseDevice('mobile'));
+  document.getElementById('change-device').addEventListener('click',openDevicePicker);
+  setupTouchControls();
+}
+
+setupInterface();
 init();
 loadHunter();
 loadTapeModel();
