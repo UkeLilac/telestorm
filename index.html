@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BACKROOMS // hunt</title>
+<style>
+  :root{--void:#0a0a06;--phosphor:#39ff7a;--phosphor-dim:#1a6e3a;--ice:#6fd6ff;--bleed:#ff2e4d;--ink:#7fffb0;--amber:#ffb52e;--moho:#c9b458;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--void);overflow:hidden;
+    font-family:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace}
+  #stage{position:fixed;inset:0}canvas{display:block}
+  #hud{position:fixed;inset:0;pointer-events:none;color:var(--phosphor);
+    text-shadow:0 0 6px var(--phosphor-dim);font-size:13px;letter-spacing:.08em;mix-blend-mode:screen}
+  #hud .corner{position:absolute;padding:14px 16px;line-height:1.6}
+  #tl{top:0;left:0}#tr{top:0;right:0;text-align:right}
+  #bl{bottom:0;left:0}#br{bottom:0;right:0;text-align:right;color:var(--phosphor-dim)}
+  #stam-bar{width:150px;height:6px;margin-top:5px;border:1px solid var(--phosphor-dim);background:rgba(0,0,0,.45)}
+  #stam-fill{height:100%;width:100%;background:var(--phosphor-dim);transition:width .05s linear,background .2s linear}
+  .k{color:var(--phosphor-dim)}.v{color:var(--ink)}.a{color:var(--amber)}.r{color:var(--bleed)}
+  #vig{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at center,transparent 52%,rgba(0,0,0,.7) 100%)}
+  #threat{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+    background:radial-gradient(ellipse at center,transparent 40%,rgba(255,46,77,.3) 100%);mix-blend-mode:screen}
+  #cross{position:fixed;top:50%;left:50%;width:14px;height:14px;transform:translate(-50%,-50%);
+    pointer-events:none;mix-blend-mode:screen;display:none}
+  #cross:before,#cross:after{content:"";position:absolute;background:var(--ice)}
+  #cross:before{left:6px;top:0;width:2px;height:14px}#cross:after{top:6px;left:0;height:2px;width:14px}
+  #glitch-meter{position:fixed;top:calc(50% + 26px);left:50%;transform:translateX(-50%);
+    opacity:0;transition:opacity .25s;pointer-events:none;text-align:center;z-index:9}
+  #glitch-label{font-size:9px;letter-spacing:.34em;color:var(--ice);text-shadow:0 0 6px var(--ice);margin-bottom:3px}
+  #glitch-bar{width:120px;height:4px;border:1px solid rgba(111,214,255,.5);background:rgba(0,0,0,.5);margin:0 auto}
+  #glitch-fill{height:100%;width:0%;background:var(--ice);transition:width .06s linear,background .2s linear}
+  #overlay{position:fixed;inset:0;background:rgba(10,10,6,.94);display:flex;align-items:center;
+    justify-content:center;flex-direction:column;color:var(--phosphor);z-index:10}
+  #overlay h1{font-size:clamp(28px,6vw,60px);font-weight:800;letter-spacing:.16em;text-shadow:0 0 22px var(--phosphor-dim)}
+  #overlay p{margin-top:10px;color:var(--phosphor-dim);font-size:14px;letter-spacing:.12em;max-width:540px;text-align:center;line-height:1.8}
+  .panel{margin-top:26px;border:1px solid var(--phosphor-dim);padding:18px 24px;background:rgba(20,28,12,.3);min-width:280px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:9px 0}
+  .row label{font-size:13px;letter-spacing:.1em;color:var(--ink)}
+  .row input[type=number]{width:60px;border:1px solid var(--phosphor-dim);color:var(--phosphor);
+    background:var(--void);font-family:inherit;font-size:14px;padding:5px 8px;text-align:center}
+  .row input[type=range]{width:130px;background:var(--void)}
+  #tapeline{margin-top:6px;font-size:12px;color:var(--amber);letter-spacing:.08em;text-align:center}
+  #go{margin-top:22px;width:100%;background:var(--phosphor);color:var(--void);border:none;padding:13px;
+    font-family:inherit;font-weight:800;font-size:15px;letter-spacing:.18em;cursor:pointer;pointer-events:auto;
+    box-shadow:0 0 18px var(--phosphor-dim);transition:filter .12s}
+  #go:hover{filter:brightness(1.25)}#go:disabled{filter:grayscale(.7);cursor:wait}
+  #hint{margin-top:16px;font-size:11px;color:var(--phosphor-dim);max-width:440px;text-align:center;line-height:1.8}
+  #load{margin-top:14px;font-size:12px;color:var(--ice);letter-spacing:.1em;height:16px}
+  #end{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
+    background:rgba(10,10,6,.92);color:var(--phosphor);z-index:11;text-align:center}
+  #end h2{font-size:38px;letter-spacing:.12em;text-shadow:0 0 22px var(--phosphor-dim)}
+  #end-menu{margin-top:30px;font-family:inherit;font-weight:800;letter-spacing:.16em;font-size:14px;
+    padding:13px 30px;border:1px solid var(--phosphor-dim);background:var(--phosphor);color:var(--void);
+    cursor:pointer;box-shadow:0 0 18px var(--phosphor-dim);transition:filter .12s}
+  #end-menu:hover{filter:brightness(1.25)}
+  .flick{animation:flick 6s infinite}
+  @keyframes flick{0%,96%,100%{opacity:1}97%{opacity:.45}98.5%{opacity:.9}}
+  @media(prefers-reduced-motion:reduce){.flick{animation:none}}
+
+  #prompt{position:fixed;left:50%;bottom:18%;transform:translateX(-50%);display:none;
+    color:var(--phosphor);font-size:15px;letter-spacing:.12em;padding:8px 16px;
+    border:1px solid var(--phosphor-dim);background:rgba(10,30,18,.5);text-shadow:0 0 6px var(--phosphor-dim);
+    pointer-events:none;z-index:9}
+  #toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);opacity:0;transition:opacity .3s;
+    color:var(--amber);font-size:14px;letter-spacing:.1em;padding:8px 18px;
+    background:rgba(10,10,6,.6);border:1px solid rgba(255,181,46,.4);pointer-events:none;z-index:9;
+    text-shadow:0 0 8px rgba(255,181,46,.4);white-space:nowrap}
+  #panel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(2,4,10,.82);z-index:12}
+  .panelbox{border:1px solid var(--phosphor-dim);background:rgba(10,30,18,.4);padding:30px 40px;
+    text-align:center;color:var(--phosphor);min-width:340px}
+  .ptitle{font-size:22px;font-weight:800;letter-spacing:.18em;text-shadow:0 0 14px var(--phosphor-dim)}
+  .psub{margin-top:8px;color:var(--phosphor-dim);font-size:12px;letter-spacing:.1em}
+  .plen{margin-top:22px;font-size:24px;letter-spacing:.4em;color:var(--phosphor-dim)}
+  .pentry{margin-top:10px;font-size:34px;letter-spacing:.34em;min-height:42px;color:var(--ink);
+    text-shadow:0 0 12px var(--phosphor-dim)}
+  .pmsg{margin-top:6px;height:18px;color:var(--bleed);font-size:14px;letter-spacing:.16em}
+  .phint{margin-top:14px;color:var(--phosphor-dim);font-size:11px;letter-spacing:.06em}
+  .pbtns{margin-top:20px;display:flex;gap:12px;justify-content:center}
+  .pbtns button{font-family:inherit;font-weight:700;letter-spacing:.14em;font-size:13px;padding:10px 22px;
+    border:1px solid var(--phosphor-dim);background:var(--void);color:var(--phosphor);cursor:pointer}
+  #panel-submit{background:var(--phosphor);color:var(--void);border:none}
+
+  /* ---- start-menu two-column layout + monster "live feed" preview ---- */
+  #menu-cols{margin-top:24px;display:flex;gap:32px;align-items:center;justify-content:center;flex-wrap:wrap}
+  #menu-cols .panel{margin-top:0}
+  #preview-wrap{display:flex;flex-direction:column;align-items:center}
+  #preview-frame{position:relative;width:300px;height:340px;border:1px solid var(--phosphor-dim);
+    background:radial-gradient(ellipse at center,#0e1a12 0%,#05080a 100%);overflow:hidden;
+    box-shadow:0 0 26px rgba(57,255,122,.18),inset 0 0 60px rgba(0,0,0,.7)}
+  #preview-canvas{width:100%;height:100%;display:block;filter:contrast(1.05) saturate(.85)}
+  /* CRT scanline + flicker overlay on top of the feed */
+  #preview-scan{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;
+    background:repeating-linear-gradient(to bottom,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 3px);
+    animation:pvflick 5s infinite}
+  @keyframes pvflick{0%,93%,100%{opacity:.5}94%{opacity:.15}96%{opacity:.8}97%{opacity:.3}}
+  #preview-label{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:9px;
+    letter-spacing:.22em;color:var(--bleed);text-shadow:0 0 6px rgba(255,46,77,.6);pointer-events:none}
+  #preview-rec{position:absolute;top:8px;right:10px;font-size:9px;letter-spacing:.2em;color:var(--bleed);
+    display:flex;align-items:center;gap:5px;pointer-events:none;text-shadow:0 0 6px rgba(255,46,77,.6)}
+  #preview-rec .dot{width:7px;height:7px;border-radius:50%;background:var(--bleed);
+    box-shadow:0 0 6px var(--bleed);animation:pvrec 1.4s steps(1) infinite}
+  @keyframes pvrec{0%,50%{opacity:1}51%,100%{opacity:.15}}
+  #preview-cap{margin-top:10px;font-size:11px;letter-spacing:.16em;color:var(--phosphor-dim)}
+  @media(max-width:680px){#preview-frame{width:240px;height:280px}}
+  @media(prefers-reduced-motion:reduce){#preview-scan,#preview-rec .dot{animation:none}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hud" style="display:none">
+  <div class="corner" id="tl">
+    <div><span class="k">POS</span> <span class="v" id="hud-pos">0,0</span></div>
+    <div><span class="k">LEVEL</span> <span class="v">backrooms · sealed floor</span></div>
+  </div>
+  <div class="corner" id="tr">
+    <div><span class="k">TAPES</span> <span class="a" id="hud-tapes">0 / 0</span></div>
+    <div><span class="k">HUNTER</span> <span class="r" id="hud-hunter">searching</span></div>
+  </div>
+  <div class="corner" id="bl">
+    <div class="k">WASD walk &middot; MOUSE look &middot; SHIFT run</div>
+    <div class="k">E interact &middot; F door &middot; R rewind &middot; ESC release</div>
+    <div class="r" style="margin-top:4px">DON'T STARE AT IT — look away to stay stable</div>
+    <div class="k" style="margin-top:6px">STAMINA</div>
+    <div id="stam-bar"><div id="stam-fill"></div></div>
+    <div class="k" style="margin-top:6px">REWIND <span class="v" id="hud-rewind">READY</span> <span style="color:var(--ice)">[ R ]</span></div>
+  </div>
+  <div class="corner" id="br">BACKROOMS &middot; hunt v0.4</div>
+</div>
+<div id="cross"></div><div id="vig"></div><div id="threat"></div>
+<div id="glitch-meter"><div id="glitch-label">SIGNAL</div><div id="glitch-bar"><div id="glitch-fill"></div></div></div>
+<div id="prompt"></div>
+<div id="toast"></div>
+<div id="panel">
+  <div class="panelbox">
+    <div class="ptitle">ESCAPE TERMINAL</div>
+    <div class="psub">enter the code assembled from the tapes</div>
+    <div id="panel-len" class="plen">_ _ _</div>
+    <div id="panel-entry" class="pentry"></div>
+    <div id="panel-msg" class="pmsg"></div>
+    <div class="phint">type digits &middot; Backspace delete &middot; Enter submit &middot; Esc cancel</div>
+    <div class="pbtns"><button id="panel-submit">SUBMIT</button><button id="panel-close">CANCEL</button></div>
+  </div>
+</div>
+<div id="overlay">
+  <h1 class="flick">BACKROOMS</h1>
+  <p>// find every tape before it does — and never look straight at it.</p>
+  <div id="menu-cols">
+    <div id="preview-wrap">
+      <div id="preview-frame">
+        <canvas id="preview-canvas"></canvas>
+        <div id="preview-scan"></div>
+        <div id="preview-label">// SUBJECT — DO NOT OBSERVE DIRECTLY</div>
+        <div id="preview-rec"><span class="dot"></span>REC</div>
+      </div>
+      <div id="preview-cap">THE HUNTER · live feed</div>
+    </div>
+    <div class="panel">
+      <div class="row"><label>FLOOR SIZE</label><input id="isize" type="number" min="14" max="40" value="26"></div>
+      <div class="row"><label>WALLS</label><input id="ifill" type="range" min="8" max="28" value="18"></div>
+      <div id="tapeline">TAPES TO COLLECT: 6</div>
+      <button id="go" disabled>LOADING HUNTER…</button>
+    </div>
+  </div>
+  <div id="load">decoding model…</div>
+  <div id="hint">WASD move · MOUSE look · SHIFT run · F doors · [ R ] rewind · [ M ] mute<br>collect every tape, but don't stare at it — and not every tape is real.</div>
+</div>
+<div id="end"><h2 class="flick" id="end-title">SIGNAL EXTRACTED</h2><p style="color:var(--phosphor-dim);margin-top:10px" id="end-sub">all tapes recovered — reload for a new floor</p>
+  <button id="end-menu">RETURN TO MENU &middot; 返回主页</button>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://esm.sh/three@0.160.0",
+  "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass }     from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass }     from 'three/addons/postprocessing/OutputPass.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
+
+/* ============================================================
+   PROPORTIONS  (anchored to the human)
+   ============================================================ */
+const CELL   = 6;      // floor cell width (world units) — roomy halls
+let   N      = 26;     // cells per side (single floor)
+let   WORLD  = N*CELL;
+const HUMAN  = 2.6;    // eye height of player
+const WALL_H = HUMAN*2.6;       // walls raised: ~2.6x human  -> 6.76 (was 2x). taller, more enclosed
+const CEIL_H = WALL_H;          // solid ceiling sits flush on top of the walls
+const HUNTER_SCALE = 2.3;      // hunter height as a multiple of the player's eye height — bigger = more looming
+const HUNTER_H = Math.min(HUMAN*HUNTER_SCALE, WALL_H*0.92);   // capped just under the ceiling so the head never clips through walls/roof
+const mod=(a,m)=>((a%m)+m)%m;
+
+/* ---- bounded-map config ----
+   The grid stays toroidal for the path/collision MATH (mod arithmetic is baked in
+   everywhere), but we ring the playable interior with a SOLID wall border so the player
+   can never reach the wrap seam on foot. The ONLY way across is a teleport DOOR. */
+const BORDER = 1;               // thickness (cells) of the solid boundary ring
+let   doors  = [];              // [{side,gx,gz, inX,inZ, partner, ...}] boundary doors
+let   doorTriggers = [];        // world-space trigger boxes for teleport
+const SOLID_CEILING_COLOR = 0x2f3b37;  // 纯色天花板 — solid cold-metal grey-green
+
+/* ============================================================
+   BACKROOMS GENERATION  (single layer, ~70% open, long walls + pillars)
+   validated params: seg≈0.03*N^2 ... here scaled by WALLS slider
+   ============================================================ */
+let wall;                         // Uint8Array N*N : 1=wall 0=open (toroidal)
+const widx=(x,z)=>mod(x,N)*N+mod(z,N);
+const isWall=(x,z)=>wall[widx(x,z)]===1;
+function rngFrom(s){s=s>>>0||1;return()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;};}
+
+let openCells=[];
+const inInterior=(x,z)=>x>=BORDER&&x<N-BORDER&&z>=BORDER&&z<N-BORDER;  // playable region
+
+// flood the OPEN cells reachable from `seed`, NON-toroidal (border walls block wrap),
+// returning a Set of "x,z" keys. Used for connectivity guarantees.
+function reachableFrom(seed){
+  const seen=new Set();const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  const sk=`${seed[0]},${seed[1]}`;if(isWall(...seed))return seen;
+  const q=[seed];seen.add(sk);
+  while(q.length){const[cx,cz]=q.pop();
+    for(const[dx,dz]of dirs){const nx=cx+dx,nz=cz+dz;
+      if(nx<0||nx>=N||nz<0||nz>=N)continue;          // hard bounds: no wrap on foot
+      const kk=`${nx},${nz}`;
+      if(!isWall(nx,nz)&&!seen.has(kk)){seen.add(kk);q.push([nx,nz]);}}}
+  return seen;
+}
+
+function genFloor(segCount){
+  const r=rngFrom((Math.random()*1e9)|0);
+  wall=new Uint8Array(N*N);
+  // denser maze: bump segment density (~1.55x) for a more labyrinthine interior
+  const segs=Math.round(segCount*1.55*(N*N)/(26*26));
+  for(let s=0;s<segs;s++){
+    const x=BORDER+((r()*(N-2*BORDER))|0),z=BORDER+((r()*(N-2*BORDER))|0),horiz=r()<0.5;
+    const len=3+((r()*(N*0.45))|0);                 // long segments, kept inside interior
+    for(let i=0;i<len;i++){const cx=horiz?x+i:x,cz=horiz?z:z+i;
+      if(inInterior(cx,cz))wall[widx(cx,cz)]=1;}
+  }
+  const pillars=Math.round(N*N*0.02);               // a few more pillars for the maze feel
+  for(let i=0;i<pillars;i++){const px=BORDER+((r()*(N-2*BORDER))|0),pz=BORDER+((r()*(N-2*BORDER))|0);
+    if(inInterior(px,pz))wall[widx(px,pz)]=1;}
+
+  // ---- SOLID BORDER RING: every non-interior cell becomes a wall ----
+  for(let x=0;x<N;x++)for(let z=0;z<N;z++) if(!inInterior(x,z)) wall[widx(x,z)]=1;
+
+  // keep the largest OPEN connected component WITHIN the interior (non-toroidal); fill the rest.
+  const comp=new Int32Array(N*N).fill(-1);let cid=0;const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  for(let x=0;x<N;x++)for(let z=0;z<N;z++){
+    if(wall[widx(x,z)]||comp[widx(x,z)]>=0)continue;const id=cid++;
+    const q=[[x,z]];comp[widx(x,z)]=id;
+    while(q.length){const[cx,cz]=q.pop();for(const[dx,dz]of dirs){const nx=cx+dx,nz=cz+dz;
+      if(nx<0||nx>=N||nz<0||nz>=N)continue;   // no toroidal wrap when finding components
+      if(!wall[widx(nx,nz)]&&comp[widx(nx,nz)]<0){comp[widx(nx,nz)]=id;q.push([nx,nz]);}}}}
+  const counts={};for(let i=0;i<comp.length;i++)if(comp[i]>=0)counts[comp[i]]=(counts[comp[i]]||0)+1;
+  let best=0,bn=-1;for(const k in counts)if(counts[k]>bn){bn=counts[k];best=+k;}
+  const main=[];
+  for(let x=0;x<N;x++)for(let z=0;z<N;z++){
+    if(!wall[widx(x,z)]){ if(comp[widx(x,z)]===best) main.push([x,z]); else wall[widx(x,z)]=1; }
+  }
+
+  // ---- DOORS in the border, paired two-by-two ----
+  carveDoors(r,main);
+
+  return main;
+}
+
+/* Carve door gaps in the solid border and pair them randomly (enter A -> exit B).
+   Each door opens onto a guaranteed-open interior cell that joins the main region. */
+function carveDoors(r,main){
+  doors=[];
+  const mainSet=new Set(main.map(c=>`${c[0]},${c[1]}`));
+  // candidate door positions: one cell per side, at an interior coordinate whose
+  // inward neighbour is part of the main region (so the door actually leads somewhere).
+  const cands=[];
+  const tryAdd=(side,gx,gz,inX,inZ)=>{
+    if(mainSet.has(`${inX},${inZ}`)) cands.push({side,gx,gz,inX,inZ});
+  };
+  for(let i=BORDER;i<N-BORDER;i++){
+    tryAdd('N',i,BORDER-1,         i,BORDER);          // top edge, opens downward (+z interior)
+    tryAdd('S',i,N-BORDER,         i,N-BORDER-1);      // bottom edge, opens upward
+    tryAdd('W',BORDER-1,i,         BORDER,i);          // left edge, opens right
+    tryAdd('E',N-BORDER,i,         N-BORDER-1,i);      // right edge, opens left
+  }
+  // shuffle candidates, then keep a spaced-out subset (even count so all pair up)
+  for(let i=cands.length-1;i>0;i--){const j=(r()*(i+1))|0;[cands[i],cands[j]]=[cands[j],cands[i]];}
+  const picked=[];const minGap=Math.max(2,(N*0.18)|0);
+  for(const c of cands){
+    let ok=true;
+    for(const p of picked){if(p.side===c.side&&Math.abs((p.gx-c.gx)+(p.gz-c.gz))<minGap){ok=false;break;}}
+    if(ok)picked.push(c);
+  }
+  // target door count scales with map size; clamp to an even number >=2
+  let want=Math.max(2,Math.min(picked.length,((N/4)|0)*2));
+  want-=(want%2);
+  let chosen=picked.slice(0,want);
+  if(chosen.length%2===1)chosen.pop();
+
+  // GUARANTEE >=2 doors: if the natural perimeter candidates are too few (the main region
+  // doesn't touch enough of the inner edge), force-open a corridor from a main cell out to
+  // the border on a couple of sides, creating fresh door candidates.
+  if(chosen.length<2 && main.length){
+    const need=[];
+    // pick well-separated main cells and carve straight to the nearest border, dropping a door.
+    const sides=[
+      {side:'N',gx:c=>c[0],gz:()=>BORDER-1,inX:c=>c[0],inZ:()=>BORDER,  carve:c=>{for(let z=BORDER;z<=c[1];z++)wall[widx(c[0],z)]=0;}},
+      {side:'S',gx:c=>c[0],gz:()=>N-BORDER,inX:c=>c[0],inZ:()=>N-BORDER-1,carve:c=>{for(let z=c[1];z<=N-BORDER-1;z++)wall[widx(c[0],z)]=0;}},
+      {side:'W',gx:()=>BORDER-1,gz:c=>c[1],inX:()=>BORDER,inZ:c=>c[1],  carve:c=>{for(let x=BORDER;x<=c[0];x++)wall[widx(x,c[1])]=0;}},
+      {side:'E',gx:()=>N-BORDER,gz:c=>c[1],inX:()=>N-BORDER-1,inZ:c=>c[1],carve:c=>{for(let x=c[0];x<=N-BORDER-1;x++)wall[widx(x,c[1])]=0;}},
+    ];
+    // use two opposite sides for a sensible pairing; anchor on random main cells
+    const order=[sides[0],sides[1],sides[2],sides[3]];
+    for(let i=order.length-1;i>0;i--){const j=(r()*(i+1))|0;[order[i],order[j]]=[order[j],order[i]];}
+    chosen=[];
+    for(const s of order){
+      if(chosen.length>=2)break;
+      const anchor=main[(r()*main.length)|0];
+      s.carve(anchor);
+      const gx=s.gx(anchor),gz=s.gz(anchor),inX=s.inX(anchor),inZ=s.inZ(anchor);
+      wall[widx(gx,gz)]=0; wall[widx(inX,inZ)]=0;
+      const d={side:s.side,gx,gz,inX,inZ};
+      if(!mainSet.has(`${inX},${inZ}`)){main.push([inX,inZ]);mainSet.add(`${inX},${inZ}`);}
+      chosen.push(d);
+    }
+  }
+
+  // open each chosen door cell + ensure its inward cell is open & joined to main
+  for(const d of chosen){
+    wall[widx(d.gx,d.gz)]=0;            // the door gap itself (in the border)
+    wall[widx(d.inX,d.inZ)]=0;          // the landing cell just inside
+    if(!mainSet.has(`${d.inX},${d.inZ}`)){main.push([d.inX,d.inZ]);mainSet.add(`${d.inX},${d.inZ}`);}
+  }
+  // pair them up randomly: 0<->1, 2<->3, ...
+  for(let i=0;i+1<chosen.length;i+=2){
+    chosen[i].partner=chosen[i+1];
+    chosen[i+1].partner=chosen[i];
+  }
+  doors=chosen;
+
+  // ---- CONNECTIVITY GUARANTEE: every open cell must be reachable from a spawn cell.
+  //      (Belt-and-suspenders: the largest-component step already enforces this for the
+  //      interior, but doors/landing edits can in principle add isolated pockets.) ----
+  if(main.length){
+    const seed=main[0];
+    let reach=reachableFrom(seed);
+    // any open cell not reached: punch a wall between it and a reached neighbour.
+    let guard=0;
+    for(;;){
+      let fixedAny=false;
+      for(let x=BORDER;x<N-BORDER;x++)for(let z=BORDER;z<N-BORDER;z++){
+        if(wall[widx(x,z)]||reach.has(`${x},${z}`))continue;
+        // unreachable open cell — open a path toward any in-bounds neighbour cell,
+        // preferring one that is itself reachable.
+        const dirs=[[1,0],[-1,0],[0,1],[0,-1]];let done=false;
+        for(const[dx,dz]of dirs){const nx=x+dx,nz=z+dz;
+          if(!inInterior(nx,nz))continue;
+          if(reach.has(`${nx},${nz}`)){wall[widx(nx,nz)]=0;done=true;break;}}
+        if(!done){for(const[dx,dz]of dirs){const nx=x+dx,nz=z+dz;
+          if(inInterior(nx,nz)){wall[widx(nx,nz)]=0;done=true;break;}}}
+        if(done)fixedAny=true;
+      }
+      if(!fixedAny||++guard>N)break;
+      reach=reachableFrom(seed);
+    }
+  }
+}
+
+/* ============================================================
+   A* on open floor cells, toroidal, 4-dir
+   ============================================================ */
+const ckey=(x,z)=>`${mod(x,N)},${mod(z,N)}`;
+function nbrs(c){const[x,z]=c;const out=[];const d=[[1,0],[-1,0],[0,1],[0,-1]];
+  for(const[dx,dz]of d){const nx=x+dx,nz=z+dz;
+    if(nx<0||nx>=N||nz<0||nz>=N)continue;     // bounded map: no wrap across the solid border
+    if(!isWall(nx,nz))out.push([nx,nz]);}return out;}
+function hDist(a,b){return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1]);}  // bounded Manhattan
+function astar(start,goal,maxE=3000){
+  const sk=ckey(...start),gk=ckey(...goal);if(sk===gk)return[start];
+  const open=new Map();open.set(sk,{c:start,g:0,f:hDist(start,goal),p:null});
+  const oq=[{k:sk,f:hDist(start,goal)}];const closed=new Set();let e=0;
+  while(oq.length&&e<maxE){oq.sort((a,b)=>a.f-b.f);const cur=oq.shift();const node=open.get(cur.k);
+    if(!node||closed.has(cur.k))continue;closed.add(cur.k);e++;
+    if(cur.k===gk){const path=[];let n=node;while(n){path.push(n.c);n=n.p;}return path.reverse();}
+    for(const nb of nbrs(node.c)){const nk=ckey(...nb);if(closed.has(nk))continue;const g=node.g+1;
+      const ex=open.get(nk);if(!ex||g<ex.g){const f=g+hDist(nb,goal);open.set(nk,{c:nb,g,f,p:node});oq.push({k:nk,f});}}}
+  return null;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const stage=document.getElementById('stage');
+let renderer,scene,camera,clock,wallMat,tapeMeshes=[],state;
+let composer,glitchPass,rewindPass,losRay;        // post-processing pipeline + line-of-sight raycaster
+
+/* ============================================================
+   GLITCH SANITY  ("故障理智值")
+   The hunter is an information-overload entity — you can't look at it.
+   Aiming the crosshair at it (unobstructed) drives a hidden meter up; it
+   smears the screen with RGB tearing / static / scanlines and slows you.
+   Top it out and the signal overloads -> game over. Look away to recover.
+   ============================================================ */
+const GLITCH = {
+  coneCos   : Math.cos(0.32),  // ~18° half-angle: crosshair must roughly point at it
+  maxDist   : 60,              // beyond this, looking at it barely registers
+  riseNear  : 0.95,            // meter/s gained when staring point-blank
+  riseFar   : 0.22,            // meter/s gained when staring from across the map
+  decay     : 0.42,            // meter/s recovered while not looking
+  slowFloor : 0.45,            // movement multiplier at full glitch (1 = no slow)
+  hintAt    : 0.04,            // meter level where the hidden UI starts to reveal
+};
+/* ============================================================
+   VHS REWIND  ("时空回溯逃生")
+   The tapes are the collectible — so the player can rewind the tape of TIME.
+   Every REW_INTERVAL seconds we snapshot the player's XYZ (a 3-second ring of
+   ~30 samples). Pressing [R] rips the player back to where they were 3s ago,
+   firing a full-screen rewind shader. The hunter is also yanked back onto its
+   own recent trail. Long cooldown so it's a panic button, not a crutch. ----
+   ============================================================ */
+const REWIND = {
+  interval : 0.1,    // seconds between position snapshots
+  maxSamples: 30,    // 30 * 0.1s = 3 seconds of history
+  cooldown : 15,     // seconds between uses
+  fxTime   : 0.9,    // how long the rewind shader plays (s)
+};
+const keys={};
+const player={pos:new THREE.Vector3(),yaw:0,pitch:0};   // single floor: no vy, no gravity needed
+const PR=1.3;   // player radius
+
+function charTexture(){
+  const S=256,cv=document.createElement('canvas');cv.width=cv.height=S;
+  const g=cv.getContext('2d');g.fillStyle='#0a0a06';g.fillRect(0,0,S,S);
+  g.font='20px monospace';g.textBaseline='top';
+  const gl='01ABCDEF<>{}#%$&@/\\|=+*';
+  for(let r=0;r<12;r++)for(let c=0;c<12;c++){const ch=gl[(Math.random()*gl.length)|0],b=Math.random();
+    g.fillStyle=b>0.85?'#39ff7a':(b>0.5?'rgba(57,255,122,.45)':'rgba(26,110,58,.5)');
+    g.fillText(ch,c*21+3,r*21+2);}
+  const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1,WALL_H/CELL);return t;
+}
+
+/* ============================================================
+   MOEBIUS shader system ("三渲二" — Moebius / bande dessinée)
+   per-surface: NdotL step lighting + screen-space cross-hatching + ligne claire palette
+   ============================================================ */
+const MOEBIUS={
+  outline:true, outlineRel:0.008, outlineColor:0x0e1416,   // near-black, faintly cool ink for contour lines
+  // cold green-industrial palette (matches the FLOOR/WALL textures + phosphor HUD)
+  // light/mid = fallback surface colours (textured surfaces override these to white);
+  // bg = scene background AND fog colour — the single biggest mood lever; raise its
+  // brightness for an airier hall, lower it for a darker, more claustrophobic one.
+  light:0x8ea49b, mid:0x5c6f68, dark:0x29332f, bg:0x24322e,
+  hatch:0x14201d,            // dark green ink for hatching lines
+  // light colours (used in init) — cool fluorescent key + cold fill, no warmth
+  lightKey:0xdce7e2, lightFill:0x6f93a0, lightAmb:0xc6d4d0,
+  lightDir:new THREE.Vector3(0.5,1.0,0.35).normalize()
+};
+// Hatch strength — now SURFACE-LOCKED (world-space), so lines stick to the geometry.
+// 0 = no hatch. Press H in-game to toggle 0/0.5.
+let HATCH=0;
+const MB_SHADERS=[];   // each Moebius material's uHatchStrength uniform (for live H-toggle)
+// Colour-grade strength: blend between the original lit colour (0) and the hard cel-posterise (1).
+// Lower = gentler grading. Press G in-game to cycle.
+let CEL=0.0;
+const MB_CEL=[];       // each Moebius material's uCel uniform (for live G-cycle)
+const texLoader=new THREE.TextureLoader();
+function loadFirst(names,onLoad){
+  let i=0;const tryNext=()=>{ if(i>=names.length)return;
+    texLoader.load(names[i], t=>onLoad(t), undefined, ()=>{i++;tryNext();}); };
+  tryNext();
+}
+
+// Build a Moebius material by patching a built-in MeshLambertMaterial via onBeforeCompile.
+function moebiusMat(opts={}){
+  const m=new THREE.MeshLambertMaterial({
+    color:new THREE.Color(opts.light||MOEBIUS.light),
+    side:opts.side||THREE.FrontSide
+  });
+  m.userData.hatchScale=opts.hatchScale||3.0;
+  m.userData.darkCol=new THREE.Color(opts.mid||MOEBIUS.mid);
+  m.userData.hatchCol=new THREE.Color(MOEBIUS.hatch);
+  m.onBeforeCompile=(shader)=>{
+    shader.uniforms.uHatchScale={value:m.userData.hatchScale};
+    shader.uniforms.uHatch={value:m.userData.hatchCol};
+    shader.uniforms.uHatchStrength={value:HATCH};
+    shader.uniforms.uCel={value:CEL};
+    MB_SHADERS.push(shader.uniforms.uHatchStrength);   // register for live H-toggle
+    MB_CEL.push(shader.uniforms.uCel);                 // register for live G-cycle
+
+    // VERTEX: hand the fragment shader the true world-space position of each pixel,
+    // computed AFTER skinning/instancing so it's correct for the hunter and the walls alike.
+    shader.vertexShader='varying vec3 vWorldPos;\n'+shader.vertexShader.replace(
+      '#include <project_vertex>',
+      `#include <project_vertex>
+       {
+         vec4 mbW = vec4(transformed,1.0);
+         #ifdef USE_INSTANCING
+           mbW = instanceMatrix * mbW;
+         #endif
+         vWorldPos = (modelMatrix * mbW).xyz;
+       }`);
+
+    shader.fragmentShader='uniform float uHatchScale;\nuniform vec3 uHatch;\nuniform float uHatchStrength;\nuniform float uCel;\nvarying vec3 vWorldPos;\n'+
+      'float mbLines(vec2 p,float a,float sp,float th){float s=sin(a),c=cos(a);'+
+      'float v=p.x*c+p.y*s;float f=abs(fract(v/sp)-0.5)*2.0;return 1.0-smoothstep(th,th+0.05,f);}\n'+
+      shader.fragmentShader;
+    shader.fragmentShader=shader.fragmentShader.replace(
+      '#include <dithering_fragment>',
+      `#include <dithering_fragment>
+       {
+         float lum = dot(gl_FragColor.rgb, vec3(0.299,0.587,0.114));
+         // softer 3-band cel: values sit closer to 1.0 so brightness isn't crushed
+         float band = lum>0.66 ? 1.0 : (lum>0.33 ? 0.80 : 0.62);
+         vec3 hardCel = gl_FragColor.rgb/max(lum,0.001) * band;
+         // uCel blends original lit colour <-> full posterise. Lower = gentler grade.
+         vec3 cel = mix(gl_FragColor.rgb, hardCel, uCel);
+
+         // ---- SURFACE-LOCKED hatch: triplanar projection of the WORLD position, so the
+         //      lines are painted onto the geometry and travel with it (no screen sliding). ----
+         vec3 Nw = normalize(transpose(mat3(viewMatrix)) * normalize(vNormal));  // view->world normal
+         vec3 wgt = abs(Nw); wgt /= max(wgt.x+wgt.y+wgt.z, 1e-4);                 // triplanar blend weights
+         float SP = uHatchScale * 0.06;                                          // line spacing in WORLD units
+         float l1 = mbLines(vWorldPos.zy, 0.785, SP, 0.16)*wgt.x
+                  + mbLines(vWorldPos.xz, 0.785, SP, 0.16)*wgt.y
+                  + mbLines(vWorldPos.xy, 0.785, SP, 0.16)*wgt.z;
+         float l2 = mbLines(vWorldPos.zy,-0.785, SP, 0.16)*wgt.x
+                  + mbLines(vWorldPos.xz,-0.785, SP, 0.16)*wgt.y
+                  + mbLines(vWorldPos.xy,-0.785, SP, 0.16)*wgt.z;
+         float shade = 1.0 - smoothstep(0.34, 0.60, lum);   // single hatch on the shadow side
+         float deep  = 1.0 - smoothstep(0.18, 0.36, lum);   // add cross-hatch only in core shadow
+         float h = max(l1*shade, l2*deep);
+
+         cel = mix(cel, uHatch, clamp(h,0.0,1.0)*uHatchStrength);
+         gl_FragColor = vec4(cel, gl_FragColor.a);
+       }`);
+  };
+  // unique program per hatchScale so each surface keeps its own line density
+  m.customProgramCacheKey=()=>'moebius'+m.userData.hatchScale;
+  return m;
+}
+function applyMapTo(mat,tex){ mat.map=tex; mat.color.setHex(0xffffff); mat.needsUpdate=true; }
+
+// normal-extruded inverted-hull outline using built-in material so skinning/instancing work.
+// `width` is an ABSOLUTE extrusion in the geometry's own units (same space as its vertices),
+// so it scales naturally with the model. outlineModel() derives it from each mesh's size.
+function makeOutlineMat(width){
+  const w=(width&&width>0)?width:0.04;
+  const m=new THREE.MeshBasicMaterial({color:new THREE.Color(MOEBIUS.outlineColor),side:THREE.BackSide});
+  m.onBeforeCompile=(shader)=>{
+    shader.uniforms.uOutW={value:w};
+    shader.vertexShader='uniform float uOutW;\n'+shader.vertexShader.replace(
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\n transformed += normalize(objectNormal) * uOutW;');
+  };
+  m.customProgramCacheKey=()=>'mboutline'+w.toFixed(5);
+  return m;
+}
+// thickness = rel * (this mesh's own largest dimension). Because the extrusion and the vertices
+// live in the SAME space, the shell ends up a constant *fraction* of the model in world space —
+// no matter what unit the FBX was exported in. This is what kills the hunter's "thick black film":
+// a fixed 0.05 was huge relative to its bind-pose units once the skeleton's scale was applied.
+function outlineWidthFor(mesh,rel){
+  const g=mesh.geometry; if(!g.boundingBox) g.computeBoundingBox();
+  const s=new THREE.Vector3(); g.boundingBox.getSize(s);
+  return rel*(Math.max(s.x,s.y,s.z)||1);
+}
+function outlineModel(root,rel){
+  if(!MOEBIUS.outline)return;
+  rel=rel||MOEBIUS.outlineRel;
+  const meshes=[];root.traverse(o=>{if(o.isMesh&&o.name!=='__outline')meshes.push(o);});
+  for(const mesh of meshes){
+    const w=outlineWidthFor(mesh,rel);
+    if(mesh.isSkinnedMesh){
+      const so=new THREE.SkinnedMesh(mesh.geometry,makeOutlineMat(w));
+      so.bind(mesh.skeleton,mesh.bindMatrix);so.name='__outline';so.frustumCulled=false;
+      mesh.parent.add(so);
+    }else{
+      const o=new THREE.Mesh(mesh.geometry,makeOutlineMat(w));o.name='__outline';mesh.add(o);
+    }
+  }
+}
+
+function buildFloor(){
+  const grp=new THREE.Group();grp.name='floor';
+  // ground plane — Moebius material, FLOOR.png/jpg tiled across the floor
+  const gmat=moebiusMat({light:0x6f827b,mid:0x55655f,hatchScale:3.2});   // cold fallback; FLOOR texture overrides to white
+  loadFirst(['FLOOR.png','FLOOR.jpg'],t=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(N,N);
+    applyMapTo(gmat,t);});
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(WORLD,WORLD),gmat);
+  ground.rotation.x=-Math.PI/2;ground.position.set(WORLD/2,0,WORLD/2);grp.add(ground);
+  // SOLID-COLOUR CEILING — opaque flat plane capping the raised walls (纯色天花板).
+  // Plain MeshBasicMaterial so it reads as one even, untextured colour (no hatching/banding).
+  const cmat=new THREE.MeshBasicMaterial({color:SOLID_CEILING_COLOR,side:THREE.DoubleSide});
+  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(WORLD,WORLD),cmat);
+  ceil.rotation.x=Math.PI/2;ceil.position.set(WORLD/2,CEIL_H,WORLD/2);ceil.name='ceiling';grp.add(ceil);
+
+  // walls as instanced boxes — Moebius material, WALL.png/jpg tiled once per block face
+  let count=0;for(let i=0;i<wall.length;i++)if(wall[i])count++;
+  wallMat=moebiusMat({light:0x7e918a,mid:0x5d6f68,hatchScale:3.0});   // cold fallback; WALL texture overrides to white
+  loadFirst(['WALL.png','WALL.jpg'],t=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;
+    t.repeat.set(1,Math.max(1,Math.round(WALL_H/CELL))); // tile vertically so taller walls don't stretch
+    applyMapTo(wallMat,t);});
+  const geo=new THREE.BoxGeometry(CELL,WALL_H,CELL);
+  const mesh=new THREE.InstancedMesh(geo,wallMat,count);
+  mesh.name='wallmesh';
+  const m=new THREE.Matrix4();let ii=0;
+  for(let x=0;x<N;x++)for(let z=0;z<N;z++){ if(!wall[widx(x,z)])continue;
+    m.makeTranslation(x*CELL+CELL/2,WALL_H/2,z*CELL+CELL/2);mesh.setMatrixAt(ii++,m);}
+  mesh.instanceMatrix.needsUpdate=true;grp.add(mesh);
+  // wall outline: SAME geometry, normal-extruded backface shell (no floating faces on coplanar walls)
+  if(MOEBIUS.outline){
+    const oMesh=new THREE.InstancedMesh(geo, makeOutlineMat(), count);
+    oMesh.name='walloutline';let jj=0;
+    for(let x=0;x<N;x++)for(let z=0;z<N;z++){ if(!wall[widx(x,z)])continue;
+      m.makeTranslation(x*CELL+CELL/2,WALL_H/2,z*CELL+CELL/2);oMesh.setMatrixAt(jj++,m);}
+    oMesh.instanceMatrix.needsUpdate=true;grp.add(oMesh);
+  }
+  return grp;
+}
+
+/* Build visible door portals at each border gap and register teleport triggers.
+   Each door is paired (set in carveDoors): stepping into door A's trigger drops you
+   just inside door B, facing into the room, and vice-versa. */
+function buildDoors(){
+  const grp=new THREE.Group();grp.name='doors';
+  doorTriggers=[];
+  // inward unit vector per side (direction the door opens into the room)
+  const inward={N:[0,1],S:[0,-1],W:[1,0],E:[-1,0]};
+  for(const d of doors){
+    const cx=d.gx*CELL+CELL/2, cz=d.gz*CELL+CELL/2;
+    const [ix,iz]=inward[d.side];
+    const horiz = d.side==='N'||d.side==='S';   // door spans across X (frame faces ±Z)
+    // portal slab: a glowing phosphor panel filling the gap, slightly inset
+    const w = horiz?CELL:0.5, dep = horiz?0.5:CELL;
+    const portal=new THREE.Mesh(new THREE.BoxGeometry(w,WALL_H*0.86,dep),
+      new THREE.MeshBasicMaterial({color:0x39ff7a,transparent:true,opacity:0.16,side:THREE.DoubleSide}));
+    portal.position.set(cx,WALL_H*0.43,cz);grp.add(portal);
+    // bright frame ring around the opening
+    const fr=new THREE.Mesh(new THREE.BoxGeometry(w+0.4,WALL_H*0.9,dep+0.4),
+      new THREE.MeshBasicMaterial({color:0x6fd6ff,transparent:true,opacity:0.10,side:THREE.BackSide}));
+    fr.position.copy(portal.position);grp.add(fr);
+    // ground glyph on the landing cell so the door reads from inside
+    const ring=new THREE.Mesh(new THREE.RingGeometry(1.1,1.5,28),
+      new THREE.MeshBasicMaterial({color:0x6fd6ff,transparent:true,opacity:0.5,side:THREE.DoubleSide}));
+    ring.rotation.x=-Math.PI/2;ring.position.set(d.inX*CELL+CELL/2,0.06,d.inZ*CELL+CELL/2);grp.add(ring);
+
+    // teleport trigger: centred on the landing cell (the open cell just inside the door)
+    d.landX=d.inX*CELL+CELL/2; d.landZ=d.inZ*CELL+CELL/2;
+    d.faceYaw=Math.atan2(ix, iz);   // yaw to look into the room (matches player.yaw convention)
+    doorTriggers.push(d);
+  }
+  return grp;
+}
+function collide2D(np){
+  // check the cells around the player; push circle out of any solid cell AABB
+  const cx=Math.floor(np.x/CELL),cz=Math.floor(np.z/CELL);
+  for(let gz=cz-1;gz<=cz+1;gz++)for(let gx=cx-1;gx<=cx+1;gx++){
+    if(!isWall(gx,gz))continue;
+    const minX=gx*CELL,maxX=minX+CELL,minZ=gz*CELL,maxZ=minZ+CELL;
+    // closest point on AABB to circle center (use unwrapped local coords near player)
+    const px=np.x,pz=np.z;
+    const qx=Math.max(minX,Math.min(px,maxX)),qz=Math.max(minZ,Math.min(pz,maxZ));
+    let dx=px-qx,dz=pz-qz;const d2=dx*dx+dz*dz;
+    if(d2<PR*PR){
+      const d=Math.sqrt(d2)||0.0001;const push=(PR-d)/d;
+      np.x+=dx*push;np.z+=dz*push;
+    }
+  }
+  return np;
+}
+
+/* ============================================================
+   HUNTER
+   ============================================================ */
+const hunter={rig:null,root:null,mixer:null,actions:{},current:null,pos:new THREE.Vector3(),
+  path:null,pathStep:0,repathTimer:0,state:'idle',baseSpeed:3.0,lostTimer:0,
+  yaw:0,targetYaw:0,turnRate:2.6,           // smooth turning: current/target heading, max rad/s
+  fixX:-Math.PI/2, fixY:0};   // fixX: posture correction (Blender Z-up -> Three Y-up). tweak with [ ] keys.
+const clips={};let modelReady=false;
+
+function loadHunter(){
+  const loader=new FBXLoader();const loadEl=document.getElementById('load');
+  const files=[['idle','IDLE.fbx'],['walk','WALK.fbx'],['relax','RELAX.fbx'],['sit','SIT.fbx']];
+  let base=null,done=0;
+  files.forEach(([key,file])=>{
+    loader.load(file,obj=>{
+      if(!base){base=obj;
+        obj.traverse(o=>{if(o.isMesh){
+          o.frustumCulled=false;
+          if(o.material){                         // convert embedded materials to Moebius shader
+            const mats=Array.isArray(o.material)?o.material:[o.material];
+            const conv=mats.map(mm=>{
+              const mat=moebiusMat({side:THREE.DoubleSide, hatchScale:2.6});
+              if(mm.map){applyMapTo(mat,mm.map);}
+              else if(mm.color){mat.color.copy(mm.color);}
+              return mat;
+            });
+            o.material=Array.isArray(o.material)?conv:conv[0];
+          }
+        }});
+        hunter.root=obj;hunter.mixer=new THREE.AnimationMixer(obj);
+      }
+      if(obj.animations&&obj.animations[0]){const clip=obj.animations[0];clip.name=key;clips[key]=clip;}
+      done++;loadEl.textContent=`decoding model… ${done}/${files.length}`;
+      if(done===files.length)finalize();
+    },xhr=>{if(xhr.total)loadEl.textContent=`loading ${file} ${(xhr.loaded/xhr.total*100|0)}%`;},
+    err=>{
+      // SIT is an optional add-on: if it's missing, fall back to RELAX so the game still boots.
+      console.error(err);
+      if(key==='sit'){ loadEl.textContent='SIT.fbx missing — using RELAX as sit'; }
+      else { loadEl.textContent=`failed to load ${file} — serve over http://, not file://`; }
+      done++;loadEl.textContent=`decoding model… ${done}/${files.length}`;
+      if(done===files.length)finalize();
+    });
+  });
+}
+function uprightAndFit(){
+  // rig = outer container (position + heading). root = model (posture correction only).
+  hunter.rig=new THREE.Group();
+  hunter.rig.add(hunter.root);
+  autoUpright();
+  fitHunter();
+  outlineModel(hunter.root, 0.004);   // thinner, scale-relative outline shell just for the hunter
+}
+function autoUpright(){
+  // detect lying-down: with no correction, a standing humanoid has Y(height) >> Z(depth).
+  // if depth dominates height, the model is on its back/front -> rotate about X to stand it up.
+  hunter.root.rotation.set(0,0,0);hunter.root.scale.setScalar(1);hunter.root.position.set(0,0,0);
+  hunter.root.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(hunter.root);const sz=new THREE.Vector3();box.getSize(sz);
+  if(sz.z>sz.y*1.3){
+    // lying along Z. centroid below or above origin tells us face-down vs face-up; default -90°.
+    hunter.fixX=-Math.PI/2;
+  }else if(sz.x>sz.y*1.3){
+    hunter.fixX=0;hunter.fixY=0; // lying along X (rare) — would need Z-rotation; leave for manual keys
+  }else{
+    hunter.fixX=0; // already upright
+  }
+}
+function fitHunter(){
+  // apply current posture rotation, then scale to HUNTER_H and drop feet to y=0
+  hunter.root.rotation.set(hunter.fixX,hunter.fixY,0);
+  hunter.root.scale.setScalar(1);
+  hunter.root.position.set(0,0,0);
+  hunter.root.updateMatrixWorld(true);
+  let box=new THREE.Box3().setFromObject(hunter.root);
+  const size=new THREE.Vector3();box.getSize(size);
+  const s=HUNTER_H/(size.y||1);
+  hunter.root.scale.setScalar(s);
+  hunter.root.updateMatrixWorld(true);
+  box=new THREE.Box3().setFromObject(hunter.root);
+  hunter.root.position.y -= box.min.y;        // feet on the floor
+  hunter.root.position.x -= (box.min.x+box.max.x)/2; // center horizontally
+  hunter.root.position.z -= (box.min.z+box.max.z)/2;
+}
+function finalize(){
+  // SIT fallback: if SIT.fbx failed to load, reuse the RELAX clip as 'sit' so nothing breaks.
+  if(!clips.sit && clips.relax) clips.sit=clips.relax;
+  for(const k of['idle','walk','relax','sit'])if(clips[k])hunter.actions[k]=hunter.mixer.clipAction(clips[k]);
+  if(hunter.actions.relax){hunter.actions.relax.loop=THREE.LoopOnce;hunter.actions.relax.clampWhenFinished=true;}
+  if(hunter.actions.sit){hunter.actions.sit.loop=THREE.LoopOnce;hunter.actions.sit.clampWhenFinished=true;}
+  uprightAndFit();
+  modelReady=true;document.getElementById('load').textContent='hunter ready';
+  const go=document.getElementById('go');go.disabled=false;go.textContent='ENTER THE BACKROOMS';
+  buildPreview();
+}
+
+/* ============================================================
+   START-MENU MONSTER PREVIEW — an isolated little WebGL "security feed"
+   showing the hunter slowly turning under a cold key light, playing its
+   idle clip. Uses its own renderer/scene so it never touches the game world.
+   ============================================================ */
+const preview={renderer:null,scene:null,camera:null,mixer:null,model:null,root:null,clock:null,raf:0,
+  actions:{},current:null,switchIn:0,flick:0};
+function buildPreview(){
+  if(preview.renderer) return;                 // already built
+  const cv=document.getElementById('preview-canvas'); if(!cv||!hunter.root) return;
+  let w=cv.clientWidth||300, h=cv.clientHeight||340;
+  try{
+    preview.renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  }catch(err){ return; }
+  preview.renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  preview.renderer.setSize(w,h,false);
+  preview.scene=new THREE.Scene();
+  preview.scene.fog=new THREE.FogExp2(0x05080a,0.05);
+  preview.camera=new THREE.PerspectiveCamera(38,w/h,0.1,200);
+  // cold, theatrical lighting — a hard key + dim rim so it reads as a silhouette
+  const key=new THREE.DirectionalLight(0xdce7e2,2.2);key.position.set(1.2,1.6,1.4);preview.scene.add(key);
+  const rim=new THREE.DirectionalLight(0x39ff7a,1.1);rim.position.set(-1.5,0.8,-1.2);preview.scene.add(rim);
+  preview.scene.add(new THREE.AmbientLight(0x223028,0.5));
+
+  // clone the rigged hunter (skinned) so its skeleton/animation is independent of the game
+  let model;
+  try{ model=cloneSkinned(hunter.root); }
+  catch(err){ model=hunter.root.clone(true); }
+  model.traverse(o=>{ if(o.isMesh) o.frustumCulled=false; });
+  // wrap so we can spin it without fighting the posture-correction transform on root
+  const spinner=new THREE.Group(); spinner.add(model); preview.scene.add(spinner);
+  preview.root=spinner; preview.model=model;
+
+  // frame the camera on the model's bounds
+  const box=new THREE.Box3().setFromObject(model);
+  const size=new THREE.Vector3(); box.getSize(size);
+  const center=new THREE.Vector3(); box.getCenter(center);
+  // sit the model's feet on the disc (y=0) and center it horizontally on the spin axis
+  spinner.position.x-=center.x;
+  spinner.position.z-=center.z;
+  spinner.position.y-=box.min.y;
+  const tallY=size.y||HUNTER_H;
+  // UPPER-BODY SHOT: frame the model with room to spare so it reads clearly and
+  // sits comfortably in the feed rather than filling it edge-to-edge.
+  const fovV=preview.camera.fov*Math.PI/180;
+  const framedH=tallY*0.95;                          // vertical slice to fill the frame (more = further back)
+  const fitDist=(framedH*0.5)/Math.tan(fovV/2)+1.6;  // extra pull-back so it's not cramped
+  const aimY=tallY*0.58;                             // look around chest height
+  preview.camera.position.set(0,aimY,fitDist);
+  preview.camera.lookAt(0,aimY,0);
+  preview.camera.near=0.05; preview.camera.updateProjectionMatrix();
+
+  // subtle floor glow far below the framing — mostly out of shot, just a faint base tint
+  const rad=Math.max(size.x,size.z)*0.9+0.4;
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(rad,40),
+    new THREE.MeshBasicMaterial({color:0x0c1a12,transparent:true,opacity:0.5}));
+  disc.rotation.x=-Math.PI/2;preview.scene.add(disc);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(rad*0.9,rad,40),
+    new THREE.MeshBasicMaterial({color:0x39ff7a,transparent:true,opacity:0.3,side:THREE.DoubleSide}));
+  ring.rotation.x=-Math.PI/2;ring.position.y=0.01;preview.scene.add(ring);
+
+  // ---- build the three preview actions: walk / idle / sit. The loop randomly
+  //      switches between them. 'sit' uses the new SIT.fbx clip (falls back to relax). ----
+  preview.mixer=new THREE.AnimationMixer(model);
+  preview.actions={};
+  const previewClips={ idle:clips.idle, walk:clips.walk, sit:clips.sit||clips.relax };
+  for(const k of ['idle','walk','sit']) if(previewClips[k]) preview.actions[k]=preview.mixer.clipAction(previewClips[k]);
+  preview.clock=new THREE.Clock();
+  // start on idle (or whatever's available)
+  const first=preview.actions.idle?'idle':(preview.actions.walk?'walk':'sit');
+  previewSwitchAnim(first, true);
+  preview.switchIn=2.5+Math.random()*2.5;   // first switch after a couple seconds
+  previewLoop();
+}
+
+// Switch the preview to a (possibly random) animation and trigger one feed flicker.
+function previewSwitchAnim(name, instant){
+  if(!preview.mixer||!preview.actions[name]) return;
+  const next=preview.actions[name];
+  next.reset();
+  // walk/sit clips carry root motion that would drift the model out of frame — loop &
+  // re-pin every frame (done in previewLoop) so the pose plays in place.
+  next.setLoop(THREE.LoopRepeat, Infinity);
+  next.clampWhenFinished=false;
+  next.enabled=true; next.setEffectiveWeight(1).play();
+  if(preview.current && preview.actions[preview.current] && preview.current!==name){
+    preview.actions[preview.current].crossFadeTo(next, instant?0:0.25, false);
+  }
+  preview.current=name;
+  if(!instant) preview.flick=0.22;          // trigger the screen-flicker on switch
+}
+function previewPickRandomAnim(){
+  const names=Object.keys(preview.actions).filter(n=>n!==preview.current);
+  if(names.length===0) return;
+  const pick=names[(Math.random()*names.length)|0];
+  previewSwitchAnim(pick, false);
+}
+function previewLoop(){
+  if(!preview.renderer) return;
+  // only render while the start overlay is visible (saves GPU during play)
+  const visible=document.getElementById('overlay').style.display!=='none';
+  if(visible){
+    const dt=Math.min(preview.clock.getDelta(),0.05);
+    if(preview.mixer) preview.mixer.update(dt);
+    if(preview.root) preview.root.rotation.y+=dt*0.5;   // slow turntable
+
+    // ---- pin the model in place: walk/relax clips carry root translation that would
+    //      otherwise drift it out of the framed shot. Re-zero the model's own x/z each
+    //      frame (its parent spinner holds the centering offset). ----
+    if(preview.model){ preview.model.position.x=0; preview.model.position.z=0; }
+
+    // ---- randomly switch animation every few seconds; each switch flickers the feed ----
+    preview.switchIn-=dt;
+    if(preview.switchIn<=0){
+      previewPickRandomAnim();
+      preview.switchIn=3.0+Math.random()*3.0;          // next switch in 3–6s
+    }
+
+    // ---- feed flicker overlay: fade the canvas + a white wash on each anim switch ----
+    const cv=preview.renderer.domElement;
+    if(preview.flick>0){
+      preview.flick=Math.max(0,preview.flick-dt);
+      const f=preview.flick/0.22;                       // 1 → 0 over the flick window
+      const wob=0.4+0.6*Math.abs(Math.sin(f*22.0));     // rapid strobe
+      cv.style.opacity=String(0.15+0.85*(1-f*0.85));
+      cv.style.filter=`contrast(1.05) saturate(.85) brightness(${1+f*1.4*wob})`;
+    }else{
+      cv.style.opacity='1'; cv.style.filter='contrast(1.05) saturate(.85)';
+    }
+
+    // keep canvas sized to its box
+    const w=cv.clientWidth,h=cv.clientHeight;
+    if(w&&h&&(cv.width!==Math.floor(w*preview.renderer.getPixelRatio())||cv.height!==Math.floor(h*preview.renderer.getPixelRatio()))){
+      preview.renderer.setSize(w,h,false);
+      preview.camera.aspect=w/h; preview.camera.updateProjectionMatrix();
+    }
+    preview.renderer.render(preview.scene,preview.camera);
+  }else{ preview.clock.getDelta(); }   // keep the clock from accumulating a huge dt
+  preview.raf=requestAnimationFrame(previewLoop);
+}
+function setAnim(name,fade=0.3){
+  if(!hunter.actions[name]||hunter.current===name)return;const next=hunter.actions[name];
+  next.reset();next.enabled=true;next.setEffectiveWeight(1).play();
+  if(hunter.current&&hunter.actions[hunter.current])hunter.actions[hunter.current].crossFadeTo(next,fade,false);
+  hunter.current=name;
+}
+
+/* ---- TAPE model template (GLB, with wireframe fallback) ---- */
+let tapeTemplate=null;
+function loadTapeModel(){
+  const loader=new GLTFLoader();
+  loader.load('TAPE.glb', gltf=>{
+    const obj=gltf.scene;
+    // normalize tape to ~1.8u wide
+    const box=new THREE.Box3().setFromObject(obj);const sz=new THREE.Vector3();box.getSize(sz);
+    const s=1.8/(Math.max(sz.x,sz.y,sz.z)||1);obj.scale.setScalar(s);
+    obj.traverse(o=>{if(o.isMesh){o.frustumCulled=false;}});
+    tapeTemplate=obj;
+  }, undefined, err=>{ console.warn('TAPE.glb not found, using wireframe fallback'); });
+}
+function makeTape(){
+  if(tapeTemplate){
+    const m=tapeTemplate.clone(true);
+    m.traverse(o=>{if(o.isMesh&&o.material){
+      const src=o.material;
+      const mat=moebiusMat({hatchScale:2.2});
+      if(src.map){applyMapTo(mat,src.map);}
+      else if(src.color){mat.color.copy(src.color);}
+      o.material=mat;
+    }});
+    if(MOEBIUS.outline)outlineModel(m);
+    return m;
+  }
+  // fallback: amber Moebius box (so the game still runs without the glb)
+  const box=new THREE.Mesh(new THREE.BoxGeometry(1.6,1,0.5),moebiusMat({light:0x7e918a,mid:0x5d6f68}));   // fallback only; real TAPE.glb keeps its own material
+  box.name='tapebox';
+  if(MOEBIUS.outline)outlineModel(box);
+  return box;
+}
+const toCell=p=>[Math.floor(p.x/CELL),Math.floor(p.z/CELL)];
+const cellCenter=c=>new THREE.Vector3(c[0]*CELL+CELL/2,0,c[1]*CELL+CELL/2);
+
+function placeHunter(){
+  let best=openCells[0],bd=-1;const pc=toCell(player.pos);
+  for(let i=0;i<50;i++){const c=openCells[(Math.random()*openCells.length)|0];const d=hDist(c,pc);
+    if(d>bd){bd=d;best=c;}}
+  hunter.pos.copy(cellCenter(best));
+  if(hunter.rig){hunter.rig.position.copy(hunter.pos);scene.add(hunter.rig);}
+  hunter.path=null;hunter.pathStep=0;hunter.repathTimer=0;hunter.state='walk';hunter.lostTimer=0;setAnim('walk',0);
+}
+
+function updateHunter(dt){
+  if(!modelReady||!hunter.rig)return;
+  hunter.mixer.update(dt);
+  const pc=toCell(player.pos),hc=toCell(hunter.pos);
+  hunter.repathTimer-=dt;
+  if(hunter.repathTimer<=0){hunter.repathTimer=0.6;
+    let goal=pc;if(isWall(...goal)){outer:for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1],[0,0]]){
+      const t=[pc[0]+dx,pc[1]+dz];
+      if(t[0]<0||t[0]>=N||t[1]<0||t[1]>=N)continue;
+      if(!isWall(...t)){goal=[t[0],t[1]];break outer;}}}
+    const path=astar(hc,goal,3000);
+    if(path&&path.length>1){hunter.path=path;hunter.pathStep=1;hunter.lostTimer=0;}
+    else hunter.lostTimer+=0.6;
+  }
+  const k=0.35;
+  // mimic-trap buff: +50% speed for its duration; also keep forcing the goal onto the player
+  let buffMul=1;
+  if(state&&(state.hunterBuff||0)>0){
+    state.hunterBuff=Math.max(0,state.hunterBuff-dt);
+    buffMul=1.5;
+  }
+  const speed=hunter.baseSpeed*(1+k*(state?state.collected:0))*buffMul;
+  let moving=false;
+  if(hunter.path&&hunter.pathStep<hunter.path.length){
+    const target=cellCenter(hunter.path[hunter.pathStep]);
+    const dx=target.x-hunter.pos.x;
+    const dz=target.z-hunter.pos.z;
+    const dist=Math.hypot(dx,dz);
+    if(dist<0.5){hunter.pathStep++;}
+    else{
+      hunter.targetYaw=Math.atan2(dx,dz);                 // desired facing
+      // angular error (shortest signed) — slow forward motion until roughly facing target
+      let err=hunter.targetYaw-hunter.yaw;
+      err=Math.atan2(Math.sin(err),Math.cos(err));
+      const facing=Math.max(0,Math.cos(err));             // 1 when aligned, 0 when sideways
+      const step=speed*dt*facing/dist;
+      hunter.pos.x+=dx*step;
+      hunter.pos.z+=dz*step;
+      moving=true;
+    }
+  }
+  // smooth turn: ease current yaw toward target yaw by a capped angular rate
+  {
+    let err=hunter.targetYaw-hunter.yaw;
+    err=Math.atan2(Math.sin(err),Math.cos(err));
+    const maxTurn=hunter.turnRate*dt;                     // rad per frame cap
+    hunter.yaw += Math.max(-maxTurn,Math.min(maxTurn,err));
+    hunter.rig.rotation.y=hunter.yaw;
+  }
+  // animation state machine: walk while moving; if lost for a while, sit (relax); else idle
+  if(moving){if(hunter.state!=='walk'){hunter.state='walk';setAnim('walk');}}
+  else if(hunter.lostTimer>4){if(hunter.state!=='relax'){hunter.state='relax';setAnim('relax');}}
+  else {if(hunter.state!=='idle'&&hunter.state!=='relax'){hunter.state='idle';setAnim('idle');}}
+
+  hunter.rig.position.set(hunter.pos.x,0,hunter.pos.z);   // FEET ON FLOOR — single layer, no vertical drift
+
+  // ---- record hunter's own recent trail (mirrors player's rewind window) ----
+  if(state){
+    hunter.histTimer=(hunter.histTimer||0)-dt;
+    if(hunter.histTimer<=0){
+      hunter.histTimer=REWIND.interval;
+      hunter.posHist=hunter.posHist||[];
+      hunter.posHist.push({x:hunter.pos.x,z:hunter.pos.z});
+      if(hunter.posHist.length>REWIND.maxSamples) hunter.posHist.shift();
+    }
+  }
+
+  // catch check — HORIZONTAL ONLY (single floor) => no more head-clipping / grabbing across layers
+  const cdx=player.pos.x-hunter.pos.x;
+  const cdz=player.pos.z-hunter.pos.z;
+  const near=Math.hypot(cdx,cdz);
+  document.getElementById('threat').style.opacity=Math.max(0,Math.min(0.8,(16-near)/16));
+  hudHunter.textContent=near<28?`hunting · ${near.toFixed(0)}m`:'searching';
+  // when it reaches you: don't end instantly. Lock your gaze onto it and let the
+  // SIGNAL meter spike (handled in updatePlayer/updateGlitch) until your signal overloads.
+  if(near<2.4 && !state.grabbed){ state.grabbed=true; hudHunter.textContent='CAUGHT'; }
+}
+
+/* ============================================================
+   BOOT / LOOP
+   ============================================================ */
+function init(){
+  renderer=new THREE.WebGLRenderer({antialias:false});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  renderer.setSize(innerWidth,innerHeight);stage.appendChild(renderer.domElement);
+  scene=new THREE.Scene();scene.background=new THREE.Color(MOEBIUS.bg);
+  scene.fog=new THREE.FogExp2(MOEBIUS.bg,0.014);
+  camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.05,600);
+  // lights drive the Lambert NdotL that the Moebius patch then bands + hatches
+  const key=new THREE.DirectionalLight(MOEBIUS.lightKey,2.0);key.position.set(0.5,1.0,0.35);scene.add(key);
+  const fill=new THREE.DirectionalLight(MOEBIUS.lightFill,0.4);fill.position.set(-0.5,0.4,-0.4);scene.add(fill);
+  scene.add(new THREE.AmbientLight(MOEBIUS.lightAmb,0.35));
+  clock=new THREE.Clock();
+
+  // ---- post-processing: line-of-sight GLITCH overload ----
+  // A custom full-screen ShaderPass (smoother & more controllable than GlitchPass,
+  // which only flickers on/off). Everything scales continuously with uIntensity 0..1.
+  try{
+    composer=new EffectComposer(renderer);
+    composer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+    composer.setSize(innerWidth,innerHeight);
+    composer.addPass(new RenderPass(scene,camera));
+    glitchPass=new ShaderPass({
+      uniforms:{
+        tDiffuse:{value:null},
+        uIntensity:{value:0},
+        uTime:{value:0},
+        uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},
+      },
+      vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+      fragmentShader:`
+        varying vec2 vUv;
+        uniform sampler2D tDiffuse;
+        uniform float uIntensity;   // 0..1 glitch strength
+        uniform float uTime;
+        uniform vec2  uRes;
+        float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+        void main(){
+          float g = clamp(uIntensity,0.0,1.0);
+          vec2 uv = vUv;
+          // --- horizontal block tearing: shove random scanline bands sideways ---
+          float band = floor(uv.y * (8.0 + g*40.0));
+          float jitter = hash(vec2(band, floor(uTime*18.0)));
+          float tear = (jitter-0.5) * g * 0.12 * step(0.55,jitter);
+          uv.x += tear;
+          // --- RGB channel split, grows with g and pulses over time ---
+          float amt = g*g*0.035*(0.6+0.4*sin(uTime*40.0));
+          vec2 off = vec2(amt,0.0);
+          float r = texture2D(tDiffuse, uv+off).r;
+          float gr= texture2D(tDiffuse, uv).g;
+          float b = texture2D(tDiffuse, uv-off).b;
+          vec3 col = vec3(r,gr,b);
+          // --- static / snow ---
+          float snow = hash(uv*uRes*0.5 + uTime*60.0);
+          col = mix(col, vec3(snow), g*0.35*step(0.4,hash(vec2(band,uTime))));
+          // --- rolling scanlines ---
+          float scan = sin((uv.y*uRes.y*0.8) + uTime*30.0)*0.5+0.5;
+          col *= 1.0 - g*0.25*scan;
+          // --- desaturate + bruise the colour as it worsens ---
+          float lum = dot(col, vec3(0.299,0.587,0.114));
+          col = mix(col, vec3(lum)*vec3(1.05,0.92,1.1), g*0.5);
+          // --- vignette closes in at high glitch ---
+          float d = distance(uv, vec2(0.5));
+          col *= 1.0 - smoothstep(0.35,0.85,d)*g*0.9;
+          gl_FragColor = vec4(col,1.0);
+        }`,
+    });
+    // glitchPass renders into the buffer; OutputPass below does the final
+    // colour-space (linear -> sRGB) + tone-mapping conversion so the post-processed
+    // image matches the original direct render instead of looking washed-out / off-tone.
+    glitchPass.renderToScreen=false;
+    composer.addPass(glitchPass);
+    // ---- VHS REWIND pass: a strong, separate full-screen effect fired by [R].
+    //      uRewind 0..1 drives heavy horizontal tearing + B&W noise + a sweeping
+    //      "tracking" bar, evoking a tape spinning backwards. ----
+    rewindPass=new ShaderPass({
+      uniforms:{
+        tDiffuse:{value:null},
+        uRewind:{value:0},
+        uTime:{value:0},
+        uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},
+      },
+      vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+      fragmentShader:`
+        varying vec2 vUv;
+        uniform sampler2D tDiffuse;
+        uniform float uRewind;   // 0..1 rewind effect strength
+        uniform float uTime;
+        uniform vec2  uRes;
+        float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+        void main(){
+          float g = clamp(uRewind,0.0,1.0);
+          vec2 uv = vUv;
+          // --- violent horizontal tearing: wide bands ripped sideways, fast jitter ---
+          float band = floor(uv.y * (10.0 + g*30.0));
+          float jit  = hash(vec2(band, floor(uTime*50.0)));
+          uv.x += (jit-0.5) * g * 0.30;
+          // --- a bright tracking bar sweeping UP the screen (tape running backwards) ---
+          float barY = fract(-uTime*1.4);
+          float bar  = smoothstep(0.06,0.0,abs(uv.y-barY));
+          uv.x += bar * g * 0.20 * (hash(vec2(uv.y,uTime))-0.5);
+          vec3 col = texture2D(tDiffuse, uv).rgb;
+          // --- heavy RGB skew while rewinding ---
+          float amt = g*0.04;
+          col.r = texture2D(tDiffuse, uv+vec2(amt,0.0)).r;
+          col.b = texture2D(tDiffuse, uv-vec2(amt,0.0)).b;
+          // --- crush toward black & white noise ---
+          float lum = dot(col, vec3(0.299,0.587,0.114));
+          float snow = hash(uv*uRes*0.7 + uTime*120.0);
+          vec3 bw = mix(vec3(lum), vec3(snow), 0.5);
+          col = mix(col, bw, g*0.85);
+          // brighten the tracking bar
+          col += bar*g*0.6;
+          // dense scanlines
+          float scan = sin(uv.y*uRes.y*1.2 + uTime*80.0)*0.5+0.5;
+          col *= 1.0 - g*0.35*scan;
+          gl_FragColor = vec4(col,1.0);
+        }`,
+    });
+    rewindPass.renderToScreen=false;
+    composer.addPass(rewindPass);
+    const outputPass=new OutputPass();
+    composer.addPass(outputPass);
+  }catch(err){ console.warn('post-processing unavailable, falling back to direct render',err); composer=null; }
+  losRay=new THREE.Raycaster();   // reused each frame for wall-occlusion checks
+
+  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
+    if(composer)composer.setSize(innerWidth,innerHeight);
+    if(glitchPass)glitchPass.uniforms.uRes.value.set(innerWidth,innerHeight);});
+  addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;
+    // ---- escape code panel input ----
+    if(state&&state.panelOpen){
+      if(/^[0-9]$/.test(e.key)&&state.entry.length<state.total){
+        state.entry+=e.key;document.getElementById('panel-entry').textContent=state.entry.split('').join(' ');
+      }else if(e.key==='Backspace'){
+        state.entry=state.entry.slice(0,-1);document.getElementById('panel-entry').textContent=state.entry.split('').join(' ');
+      }else if(e.key==='Enter'){ submitCode(); }
+      else if(e.key==='Escape'){ closePanel(); }
+      return;
+    }
+    if(e.key.toLowerCase()==='e'&&state){
+      if(state.nearTape>=0){ pickupTape(state.nearTape); }
+      else if(state.phase==='armed'&&state.nearTerm){ openPanel(); }
+    }
+    if(e.key.toLowerCase()==='f'&&state&&!state.panelOpen){ tryDoorTeleport(); }
+    if(e.key.toLowerCase()==='r'&&state&&!state.panelOpen){ triggerRewind(); }
+    if(e.key.toLowerCase()==='o'){   // toggle outline
+      MOEBIUS.outline=!MOEBIUS.outline;
+      showToast('OUTLINE '+(MOEBIUS.outline?'ON':'OFF')+' — restart floor to apply');
+    }
+    if(e.key.toLowerCase()==='h'){   // toggle terminator hatch live (no restart)
+      HATCH=HATCH>0?0:0.5;
+      MB_SHADERS.forEach(u=>{u.value=HATCH;});
+      showToast('HATCH '+(HATCH>0?'ON':'OFF — fully flat'));
+    }
+    if(e.key.toLowerCase()==='g'){   // cycle colour-grade strength live (no restart)
+      const steps=[0.0,0.1,0.3,0.6,0.9];
+      let idx=steps.findIndex(s=>Math.abs(s-CEL)<1e-3); if(idx<0)idx=0;
+      CEL=steps[(idx+1)%steps.length];
+      MB_CEL.forEach(u=>{u.value=CEL;});
+      showToast('GRADE '+Math.round(CEL*100)+'%'+(CEL<0.01?' — off (raw lit)':''));
+    }
+    if(e.key.toLowerCase()==='m'){ audioToggleMute(); }   // mute / unmute all audio
+    // ---- hunter posture debug keys ----
+    if(modelReady&&hunter.rig){
+      let changed=false;
+      if(e.key==='[' ){hunter.fixX-=Math.PI/12;changed=true;}
+      if(e.key===']' ){hunter.fixX+=Math.PI/12;changed=true;}
+      if(e.key===';' ){hunter.fixY-=Math.PI/12;changed=true;}
+      if(e.key==="'" ){hunter.fixY+=Math.PI/12;changed=true;}
+      if(changed){fitHunter();
+        const dg=r=>Math.round(r*180/Math.PI);
+        document.getElementById('hud-hunter').textContent=`fixX ${dg(hunter.fixX)}° fixY ${dg(hunter.fixY)}°`;}
+    }
+  });
+  addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+  // ---- mouse look (spike-proof) ----
+  // Browsers occasionally emit one giant movementX/Y: the "catch-up" delta the
+  // instant pointer-lock is acquired, or a random hiccup. Either caused the view
+  // to teleport. We drop the first event after lock, ignore absurd spikes, and
+  // clamp the rest so even a bad frame can't fling the camera.
+  let lockJustAcquired=false;
+  document.addEventListener('pointerlockchange',()=>{
+    if(document.pointerLockElement) lockJustAcquired=true;});
+  document.addEventListener('mousemove',e=>{
+    if(!document.pointerLockElement) return;
+    if(state&&state.grabbed) return;                          // gaze is locked onto the hunter
+    if(lockJustAcquired){ lockJustAcquired=false; return; }   // swallow the catch-up jump
+    let mx=e.movementX||0, my=e.movementY||0;
+    if(Math.abs(mx)>300) mx=0;                                // glitch spike → discard axis
+    if(Math.abs(my)>300) my=0;
+    mx=Math.max(-100,Math.min(100,mx));                       // clamp a fast-but-real flick
+    my=Math.max(-100,Math.min(100,my));
+    player.yaw  -= mx*0.0022;
+    player.pitch-= my*0.0022;
+    player.pitch=Math.max(-1.4,Math.min(1.4,player.pitch));});
+  renderer.domElement.addEventListener('click',()=>{
+    if(!document.pointerLockElement&&state)renderer.domElement.requestPointerLock();});
+  renderer.setAnimationLoop(frame);
+}
+
+function computeTapeCount(n){ return Math.floor(Math.sqrt(n))+1; }   // single-floor area scale
+
+/* escape terminal: a glowing console pillar */
+function buildTerminal(){
+  const g=new THREE.Group();
+  const base=new THREE.Mesh(new THREE.BoxGeometry(2.4,3,1.2),
+    new THREE.MeshBasicMaterial({color:0x0c2418}));
+  base.position.y=1.5;g.add(base);
+  const screen=new THREE.Mesh(new THREE.PlaneGeometry(1.8,1.1),
+    new THREE.MeshBasicMaterial({color:0x39ff7a}));
+  screen.position.set(0,2.1,0.62);g.add(screen);
+  const halo=new THREE.Mesh(new THREE.RingGeometry(1.6,2.0,32),
+    new THREE.MeshBasicMaterial({color:0x39ff7a,transparent:true,opacity:0.35,side:THREE.DoubleSide}));
+  halo.rotation.x=-Math.PI/2;halo.position.y=0.05;g.add(halo);
+  g.userData.screen=screen;g.userData.halo=halo;
+  return g;
+}
+
+function startGame(){
+  if(!modelReady)return;
+  audioStartAmbient();   // kick on the ambient music bed (first user gesture = this click)
+  N=Math.max(14,Math.min(40,(+isize.value)|0));WORLD=N*CELL;
+  const segCount=(+ifill.value);
+  openCells=genFloor(segCount);
+  if(!renderer)init();
+  ['floor','doors','dust','terminal'].forEach(nm=>{const o=scene.getObjectByName(nm);if(o)scene.remove(o);});
+  tapeMeshes.forEach(t=>scene.remove(t));tapeMeshes=[];
+  scene.add(buildFloor());
+  scene.add(buildDoors());
+
+  // floating dust within the floor volume
+  const n=900,g=new THREE.BufferGeometry(),pa=new Float32Array(n*3);
+  for(let i=0;i<n;i++){pa[i*3]=Math.random()*WORLD;pa[i*3+1]=Math.random()*WALL_H;pa[i*3+2]=Math.random()*WORLD;}
+  g.setAttribute('position',new THREE.BufferAttribute(pa,3));
+  const dust=new THREE.Points(g,new THREE.PointsMaterial({color:0x39ff7a,size:0.1,transparent:true,opacity:0.4}));
+  dust.name='dust';scene.add(dust);
+
+  // choose spawn, avoiding door landing cells (would trigger an instant teleport)
+  const doorCellKeys=new Set(doors.map(d=>`${d.inX},${d.inZ}`));
+  let sp=openCells[(Math.random()*openCells.length)|0];
+  for(let tries=0;tries<40 && doorCellKeys.has(`${sp[0]},${sp[1]}`);tries++)
+    sp=openCells[(Math.random()*openCells.length)|0];
+  player.pos.set(sp[0]*CELL+CELL/2,HUMAN,sp[1]*CELL+CELL/2);player.yaw=Math.PI*0.25;player.pitch=0;
+
+  const want=Math.max(3,Math.min(openCells.length,computeTapeCount(N)));
+  const pool=openCells.slice();
+  for(let i=pool.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[pool[i],pool[j]]=[pool[j],pool[i]];}
+  // strip the spawn cell out of the pool so nothing spawns on top of the player
+  const cellPool=pool.filter(c=>!(c[0]===sp[0]&&c[1]===sp[1]));
+  const chosen=cellPool.slice(0,want);
+  // build the escape password: one digit per REAL tape; collecting all reveals the full code
+  const password=chosen.map(()=>String((Math.random()*10)|0));
+  for(let i=0;i<chosen.length;i++){const c=chosen[i];
+    const mt=makeTape();
+    mt.position.set(c[0]*CELL+CELL/2,0.5,c[1]*CELL+CELL/2);
+    mt.userData.base=0.5;
+    mt.userData.digit=password[i];
+    mt.userData.slot=i;
+    mt.userData.isFake=false;
+    scene.add(mt);tapeMeshes.push(mt);}
+
+  // ---- MIMIC TRAP ("拟态陷阱"): scatter FAKE tapes — ~25% of the real-tape count, on
+  //      OTHER cells. They look identical until touched, then erupt into red cables,
+  //      shriek your position to the hunter, and grant it a 1.5x speed buff for 5s. ----
+  const fakeCount=Math.round(chosen.length*0.25);
+  const usedKeys=new Set(chosen.map(c=>`${c[0]},${c[1]}`));
+  const fakeCells=cellPool.filter(c=>!usedKeys.has(`${c[0]},${c[1]}`)).slice(0,fakeCount);
+  for(const c of fakeCells){
+    const ft=makeTape();
+    ft.position.set(c[0]*CELL+CELL/2,0.5,c[1]*CELL+CELL/2);
+    ft.userData.base=0.5;
+    ft.userData.isFake=true;
+    scene.add(ft);tapeMeshes.push(ft);
+  }
+
+  // escape terminal: place on a reachable cell far from spawn
+  let termCell=chosen.length?chosen[0]:sp,bd=-1;
+  for(let i=0;i<60;i++){const c=openCells[(Math.random()*openCells.length)|0];const d=hDist(c,[sp[0],sp[1]]);
+    if(d>bd&&!(c[0]===sp[0]&&c[1]===sp[1])){bd=d;termCell=c;}}
+  const term=buildTerminal();
+  term.position.set(termCell[0]*CELL+CELL/2,0,termCell[1]*CELL+CELL/2);
+  term.name='terminal';scene.add(term);
+
+  state={collected:0,total:chosen.length,over:false,
+    password,fragments:new Array(chosen.length).fill(null),
+    termPos:new THREE.Vector3(termCell[0]*CELL+CELL/2,0,termCell[1]*CELL+CELL/2),
+    phase:'collect',     // collect -> armed(can enter code) -> countdown -> done
+    countdown:0,panelOpen:false,entry:'',teleCooldown:0,
+    stam:1,winded:false,glitch:0,grabbed:false,
+    // ---- VHS rewind ----
+    rewindCD:0,          // current cooldown remaining (s)
+    rewindFX:0,          // current rewind shader timer remaining (s)
+    posHist:[],          // ring of {x,z} player snapshots (newest last)
+    histTimer:0,
+    // ---- mimic trap buff ----
+    hunterBuff:0};       // seconds of 1.5x speed remaining after a fake-tape trap
+  hunter.posHist=[];     // hunter's own recent trail, for the yank-back
+  hunter.histTimer=0;
+  hunter.baseSpeed=3.0;   // reset any countdown frenzy boost from a previous run
+  if(glitchPass)glitchPass.uniforms.uIntensity.value=0;
+  if(rewindPass)rewindPass.uniforms.uRewind.value=0;
+  {const gf=document.getElementById('glitch-fill'),gm=document.getElementById('glitch-meter');
+   if(gf)gf.style.width='0%'; if(gm)gm.style.opacity='0';}
+
+  placeHunter();
+  document.getElementById('overlay').style.display='none';
+  document.getElementById('hud').style.display='block';
+  document.getElementById('cross').style.display='block';
+  hudTapes.textContent=`0 / ${state.total}`;
+  renderer.domElement.requestPointerLock();
+}
+
+// ---- VHS REWIND: rip the player (and the hunter) back along ~3s of recorded path ----
+function triggerRewind(){
+  if(!state||state.over||state.panelOpen||state.grabbed)return;
+  if((state.rewindCD||0)>0){
+    showToast('REWIND CHARGING · '+Math.ceil(state.rewindCD)+'s');
+    return;
+  }
+  const hist=state.posHist||[];
+  if(hist.length<2){ showToast('NO TAPE TO REWIND'); return; }
+  // oldest recorded sample = where you were ~3s ago
+  const dest=hist[0];
+  player.pos.x=dest.x; player.pos.z=dest.z; player.pos.y=HUMAN;
+  // yank the hunter back onto the oldest point of ITS trail too, so it doesn't
+  // simply close the gap you just opened.
+  const hh=hunter.posHist||[];
+  if(hh.length>0 && hunter.rig){
+    const hd=hh[0];
+    hunter.pos.x=hd.x; hunter.pos.z=hd.z;
+    hunter.rig.position.set(hd.x,0,hd.z);
+    hunter.path=null; hunter.pathStep=0; hunter.repathTimer=0;  // force a fresh repath
+  }
+  // clear histories so the next rewind starts fresh
+  state.posHist=[]; state.histTimer=0;
+  hunter.posHist=[]; hunter.histTimer=0;
+  // fire the effect + start the long cooldown
+  state.rewindCD=REWIND.cooldown;
+  state.rewindFX=REWIND.fxTime;
+  if(rewindPass)rewindPass.uniforms.uRewind.value=1;
+  sfxRewind();
+  showToast('◀◀ REWIND');
+}
+
+// Teleport through the door the player is standing in front of (triggered by [F]).
+function tryDoorTeleport(){
+  if(!state||!state.nearDoor||(state.teleCooldown||0)>0)return;
+  const p=state.nearDoor.partner; if(!p)return;
+  player.pos.x=p.landX; player.pos.z=p.landZ; player.pos.y=HUMAN;
+  player.yaw=p.faceYaw;            // arrive facing into the room
+  state.teleCooldown=0.5;          // debounce so a held/repeated [F] can't ping-pong
+  state.nearDoor=null;
+  sfxTeleport();
+  showToast('▣ TELEPORT');
+}
+
+// ---- LINE-OF-SIGHT GLITCH: staring at the hunter overloads your signal ----
+// Returns a movement multiplier (1 = normal, down to GLITCH.slowFloor at full glitch).
+const _camDir=new THREE.Vector3(), _toHunt=new THREE.Vector3(), _camPos=new THREE.Vector3();
+function updateGlitch(dt){
+  if(state.glitch===undefined)state.glitch=0;
+  let looking=false, prox=0;
+  if(modelReady&&hunter.rig){
+    // vector from the eye to the hunter's torso/head
+    camera.getWorldPosition(_camPos);
+    _toHunt.set(hunter.pos.x, HUNTER_H*0.62, hunter.pos.z).sub(_camPos);
+    const dist=_toHunt.length();
+    if(dist>0.001 && dist<GLITCH.maxDist){
+      _toHunt.multiplyScalar(1/dist);
+      camera.getWorldDirection(_camDir);             // where the crosshair points
+      const aim=_camDir.dot(_toHunt);                // 1 = dead-on
+      if(aim>GLITCH.coneCos){
+        // crosshair is on it — but is a wall in the way? raycast for occlusion.
+        const wm=scene.getObjectByName('wallmesh');
+        let blocked=false;
+        if(wm){
+          losRay.set(_camPos,_toHunt); losRay.far=dist-1.0;
+          const hit=losRay.intersectObject(wm,false);
+          if(hit.length>0) blocked=true;
+        }
+        if(!blocked){ looking=true; prox=1-Math.min(1,dist/GLITCH.maxDist); }
+      }
+    }
+  }
+  if(looking){
+    const rise=GLITCH.riseFar+(GLITCH.riseNear-GLITCH.riseFar)*prox;
+    state.glitch=Math.min(1,state.glitch+rise*dt);
+  }else{
+    state.glitch=Math.max(0,state.glitch-GLITCH.decay*dt);
+  }
+  // grabbed: the entity has you — your gaze is forced onto it (see updatePlayer) and the
+  // signal tears apart fast, regardless of natural look detection.
+  if(state.grabbed){ state.glitch=Math.min(1,state.glitch+1.7*dt); }
+  // drive the screen-tear shader
+  if(glitchPass) glitchPass.uniforms.uIntensity.value=state.glitch;
+  // reveal the hidden meter only once it starts climbing
+  const meter=document.getElementById('glitch-meter'), gf=document.getElementById('glitch-fill');
+  if(meter&&gf){
+    const show=state.glitch>GLITCH.hintAt;
+    meter.style.opacity=show?String(Math.min(1,0.25+state.glitch)):'0';
+    gf.style.width=(state.glitch*100).toFixed(0)+'%';
+    gf.style.background=state.glitch>0.7?'var(--bleed)':'var(--ice)';
+  }
+  // crosshair turns hostile red while you're locked on
+  const cross=document.getElementById('cross');
+  if(cross) cross.style.filter=looking?'drop-shadow(0 0 5px var(--bleed)) hue-rotate(-120deg)':'none';
+  // overload -> game over
+  if(state.glitch>=1){ endGame(false, state.grabbed?'grabbed':'overload'); }
+  // movement penalty scales with glitch
+  return 1-(1-GLITCH.slowFloor)*state.glitch;
+}
+
+function updatePlayer(dt){
+  // ---- GRABBED: it caught you. Force the camera to lock onto the hunter (you can't look
+  //      away) and let the SIGNAL meter spike to overload. Movement is frozen. ----
+  if(state.grabbed){
+    if(modelReady&&hunter.rig){
+      const ty=HUNTER_H*0.62;
+      const dx=hunter.pos.x-player.pos.x, dz=hunter.pos.z-player.pos.z, dy=ty-HUMAN;
+      const L=Math.hypot(dx,dy,dz)||1e-3;
+      const tYaw=Math.atan2(-dx,-dz);
+      const tPitch=Math.max(-1.4,Math.min(1.4,Math.asin(Math.max(-1,Math.min(1,dy/L)))));
+      let ey=tYaw-player.yaw; ey=Math.atan2(Math.sin(ey),Math.cos(ey));
+      const k=Math.min(1,dt*14);                 // snap fast, but smoothly
+      player.yaw  += ey*k;
+      player.pitch+= (tPitch-player.pitch)*k;
+      camera.position.set(player.pos.x,HUMAN,player.pos.z);
+      camera.rotation.order='YXZ';camera.rotation.y=player.yaw;camera.rotation.x=player.pitch;
+    }
+    updateGlitch(dt);   // surges while locked; triggers the overload game-over
+    return;
+  }
+  // line-of-sight glitch: staring at the hunter spikes the meter & slows you
+  const glitchSlow=updateGlitch(dt);
+  if(state.over)return;            // overload may have ended the game this frame
+  // ---- stamina-gated sprint: SHIFT runs only while you have stamina; empty it and
+  //      you're "winded" until it recovers past 30%. Forces real chase decisions. ----
+  if(state.stam===undefined){state.stam=1;state.winded=false;}
+  const moving=keys['w']||keys['a']||keys['s']||keys['d'];
+  const sprinting=!!keys['shift'] && moving && state.stam>0 && !state.winded;
+  if(sprinting){
+    state.stam=Math.max(0,state.stam-dt*0.28);            // ~3.6s of sprint from full
+    if(state.stam<=0){state.stam=0;state.winded=true;}
+  }else{
+    state.stam=Math.min(1,state.stam+dt*0.30);            // ~3.3s to refill
+    if(state.winded&&state.stam>0.3)state.winded=false;
+  }
+  const run=sprinting?1.8:1,sp=7*run*dt*glitchSlow;
+  const fwd=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));
+  const right=new THREE.Vector3(Math.cos(player.yaw),0,-Math.sin(player.yaw));
+  const mv=new THREE.Vector3();
+  if(keys['w'])mv.add(fwd);if(keys['s'])mv.sub(fwd);
+  if(keys['d'])mv.add(right);if(keys['a'])mv.sub(right);
+  if(mv.lengthSq()>0)mv.normalize().multiplyScalar(sp);
+  const np=player.pos.clone();np.x+=mv.x;np.z+=mv.z;
+  collide2D(np);
+  // bounded map: clamp inside the solid border instead of wrapping at the seam
+  np.x=Math.max(PR,Math.min(WORLD-PR,np.x));
+  np.z=Math.max(PR,Math.min(WORLD-PR,np.z));
+  np.y=HUMAN;
+  player.pos.copy(np);
+
+  // ---- VHS REWIND bookkeeping: snapshot position on a fixed interval, tick timers ----
+  if(state.rewindCD>0) state.rewindCD=Math.max(0,state.rewindCD-dt);
+  if(state.rewindFX>0) state.rewindFX=Math.max(0,state.rewindFX-dt);
+  state.histTimer-=dt;
+  if(state.histTimer<=0){
+    state.histTimer=REWIND.interval;
+    state.posHist.push({x:player.pos.x,z:player.pos.z});
+    if(state.posHist.length>REWIND.maxSamples) state.posHist.shift();
+  }
+  //      it fires only when the player presses [F] (handled in the keydown listener). ----
+  if(state){
+    state.teleCooldown=Math.max(0,(state.teleCooldown||0)-dt);
+    let nd=null,ndD=2.4*2.4;
+    for(const d of doorTriggers){
+      if(!d.partner)continue;
+      const ddx=player.pos.x-d.landX, ddz=player.pos.z-d.landZ;
+      const dd=ddx*ddx+ddz*ddz;
+      if(dd<ndD){ndD=dd;nd=d;}
+    }
+    state.nearDoor=nd;
+  }
+
+  camera.position.set(player.pos.x,HUMAN,player.pos.z);
+  camera.rotation.order='YXZ';camera.rotation.y=player.yaw;camera.rotation.x=player.pitch;
+
+  // find nearest tape in pickup range (no auto-pickup; player presses E)
+  let nearTapeIdx=-1,nearTapeD=1e9;
+  for(let i=0;i<tapeMeshes.length;i++){const tp=tapeMeshes[i].position;
+    const dx=player.pos.x-tp.x, dz=player.pos.z-tp.z;
+    const d=Math.hypot(dx,dz);
+    if(d<2.8&&d<nearTapeD){nearTapeD=d;nearTapeIdx=i;}}
+  state.nearTape=nearTapeIdx;
+
+  if(state.collected>=state.total&&state.total>0&&state.phase==='collect'){
+    state.phase='armed';
+    showToast('ALL TAPES — find the terminal and enter the code');
+  }
+
+  // distance to terminal
+  const tdx=player.pos.x-state.termPos.x, tdz=player.pos.z-state.termPos.z;
+  const nearTerm=Math.hypot(tdx,tdz)<3.2;
+  state.nearTerm=nearTerm;
+
+  // shared prompt: tape pickup takes priority when both in range
+  const prompt=document.getElementById('prompt');
+  if(nearTapeIdx>=0&&!state.panelOpen){
+    prompt.style.display='block';prompt.textContent='[ E ]  pick up tape';
+  }else if(state.phase==='armed'&&nearTerm&&!state.panelOpen){
+    prompt.style.display='block';prompt.textContent='[ E ]  enter escape code';
+  }else if(state.phase==='collect'&&nearTerm){
+    prompt.style.display='block';prompt.textContent='terminal locked — collect all tapes first';
+  }else if(state.nearDoor&&!state.panelOpen){
+    prompt.style.display='block';prompt.textContent='[ F ]  step through door';
+  }else{ prompt.style.display='none'; }
+
+  // countdown survival
+  if(state.phase==='countdown'){
+    state.countdown-=dt;
+    hudTapes.textContent=`HOLD OUT  ${Math.ceil(state.countdown)}s`;
+    if(state.countdown<=0) endGame(true);
+  }
+
+  const sb=document.getElementById('stam-fill');
+  if(sb){sb.style.width=(state.stam*100).toFixed(0)+'%';
+    sb.style.background=state.winded?'var(--bleed)':(sprinting?'var(--phosphor)':'var(--phosphor-dim)');}
+
+  const rw=document.getElementById('hud-rewind');
+  if(rw){
+    if((state.rewindCD||0)>0){ rw.textContent=Math.ceil(state.rewindCD)+'s'; rw.style.color='var(--phosphor-dim)'; }
+    else { rw.textContent='READY'; rw.style.color='var(--ice)'; }
+  }
+
+  hudPos.textContent=`${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`;
+}
+
+const ESCAPE_SECONDS=45;
+function openPanel(){
+  if(state.phase!=='armed'||!state.nearTerm)return;
+  state.panelOpen=true;state.entry='';
+  document.exitPointerLock();
+  document.getElementById('panel').style.display='flex';
+  document.getElementById('panel-len').textContent='_ '.repeat(state.total).trim();
+  document.getElementById('panel-entry').textContent='';
+  document.getElementById('panel-msg').textContent='';
+}
+function closePanel(){
+  state.panelOpen=false;document.getElementById('panel').style.display='none';
+  if(!state.over)renderer.domElement.requestPointerLock();
+}
+function submitCode(){
+  const correct=state.password.join('');
+  if(state.entry===correct){
+    state.phase='countdown';state.countdown=ESCAPE_SECONDS;
+    closePanel();showToast('CODE ACCEPTED — extraction in '+ESCAPE_SECONDS+'s. STAY ALIVE.');
+    sfxAccept();
+    // hunter goes into a frenzy: boost during countdown
+    hunter.baseSpeed*=1.25;
+  }else{
+    document.getElementById('panel-msg').textContent='REJECTED';
+    state.entry='';document.getElementById('panel-entry').textContent='';
+  }
+}
+
+function endGame(win,reason){
+  if(state.over)return;state.over=true;document.exitPointerLock();
+  const e=document.getElementById('end');e.style.display='flex';
+  let title,sub;
+  if(win){ title='SIGNAL EXTRACTED'; sub='all tapes recovered — a way out of this floor'; }
+  else if(reason==='grabbed'){ title='CAUGHT'; sub='it reached you — your gaze locked on and the signal tore itself apart'; }
+  else if(reason==='overload'){ title='SIGNAL OVERLOAD'; sub='you looked too long — your signal tore apart'; }
+  else { title='CAUGHT'; sub='it reached you'; }
+  document.getElementById('end-title').textContent=title;
+  document.getElementById('end-sub').textContent=sub;
+  if(win) sfxWin(); else sfxCaught();
+  audioStopAmbient();
+}
+
+// Return from the end screen back to the start menu (no page reload).
+function returnToMenu(){
+  state&&(state.over=true);
+  document.getElementById('end').style.display='none';
+  document.getElementById('hud').style.display='none';
+  document.getElementById('cross').style.display='none';
+  document.getElementById('prompt').style.display='none';
+  const gm=document.getElementById('glitch-meter');if(gm)gm.style.opacity='0';
+  if(glitchPass)glitchPass.uniforms.uIntensity.value=0;
+  document.getElementById('threat').style.opacity='0';
+  audioStopAmbient();
+  document.getElementById('overlay').style.display='flex';
+}
+
+function frame(){
+  const dt=Math.min(clock.getDelta(),0.04);
+  if(state&&!state.over){updatePlayer(dt);updateHunter(dt);audioTick(dt);}
+  const t=clock.elapsedTime;
+  tapeMeshes.forEach((m,i)=>{m.rotation.y+=0.015;m.position.y=m.userData.base+Math.sin(t*1.5+i)*0.08;});
+  const term=scene&&scene.getObjectByName('terminal');
+  if(term&&term.userData.halo){const armed=state&&state.phase!=='collect';
+    const c=armed?0x39ff7a:0x6e1a1a;term.userData.screen.material.color.setHex(c);
+    term.userData.halo.material.color.setHex(c);
+    term.userData.halo.material.opacity=0.25+0.2*Math.sin(t*3);
+    term.userData.halo.scale.setScalar(1+0.05*Math.sin(t*3));}
+  const dust=scene&&scene.getObjectByName('dust');if(dust)dust.rotation.y+=dt*0.01;
+  // render through the glitch composer; fall back to plain render if it failed to build
+  if(rewindPass){
+    // ease uRewind down over the FX window so the effect tapers out smoothly
+    const fx=state?Math.max(0,Math.min(1,(state.rewindFX||0)/REWIND.fxTime)):0;
+    rewindPass.uniforms.uRewind.value=fx;
+    rewindPass.uniforms.uTime.value=t;
+  }
+  if(composer&&glitchPass){ glitchPass.uniforms.uTime.value=t; composer.render(); }
+  else if(renderer){ renderer.render(scene,camera); }
+}
+
+function showToast(msg){
+  const el=document.getElementById('toast');el.textContent=msg;el.style.opacity='1';
+  clearTimeout(showToast._t);showToast._t=setTimeout(()=>{el.style.opacity='0';},3200);
+}
+function flashFragment(remaining){
+  const code=state.fragments.map(f=>f===null?'_':f).join(' ');
+  showToast('FRAGMENT  ·  code so far:  '+code);
+}
+function pickupTape(i){
+  if(i<0||i>=tapeMeshes.length)return;
+  const tp=tapeMeshes[i];
+  // ---- MIMIC TRAP: a fake tape erupts instead of being collected ----
+  if(tp.userData.isFake){ springMimicTrap(i); return; }
+  state.fragments[tp.userData.slot]=tp.userData.digit;
+  scene.remove(tp);tapeMeshes.splice(i,1);
+  state.collected++;state.nearTape=-1;
+  sfxPickup();
+  hudTapes.textContent=`${state.collected} / ${state.total}`;
+  document.getElementById('prompt').style.display='none';
+  flashFragment(tapeMeshes.length);
+}
+
+// A fake tape: shriek the player's position to the hunter, buff it, then destroy the prop.
+function springMimicTrap(i){
+  if(i<0||i>=tapeMeshes.length)return;
+  const tp=tapeMeshes[i];
+  // visual: flash the prop red before it vanishes
+  tp.traverse(o=>{if(o.isMesh&&o.material&&o.material.color&&o.name!=='__outline'){
+    o.material.color.setHex(0xff2e4d);
+  }});
+  // audio: harsh error/alarm burst
+  playMimicAlarm();
+  // force the hunter straight onto the player's current cell + speed buff for 5s
+  if(modelReady&&hunter.rig){
+    const goal=toCell(player.pos);
+    const path=astar(toCell(hunter.pos),goal,3000);
+    if(path&&path.length>1){hunter.path=path;hunter.pathStep=1;}
+    hunter.repathTimer=0.6;hunter.lostTimer=0;
+    hunter.state='walk';setAnim('walk');
+  }
+  state.hunterBuff=5;   // 1.5x speed for 5 seconds (applied in updateHunter)
+  // remove the prop shortly after the red flash
+  state.nearTape=-1;document.getElementById('prompt').style.display='none';
+  showToast('⚠ MIMIC — IT KNOWS WHERE YOU ARE');
+  setTimeout(()=>{
+    const idx=tapeMeshes.indexOf(tp);
+    if(idx>=0)tapeMeshes.splice(idx,1);
+    scene.remove(tp);
+  },180);
+}
+
+/* ============================================================
+   AUDIO — fully synthesized with WebAudio (no asset files needed).
+   Layers:
+     • bed   : two slow detuned drones + a sub pulse  → ominous "music"
+     • air   : filtered noise wash                     → room tone / wind
+     • heart : a kick-ish thump whose rate & volume rise as the hunter nears
+     • static: band-passed noise driven by the SIGNAL/glitch meter
+   Plus one-shot SFX: tape pickup, rewind, teleport, code accept, caught, win, mimic alarm.
+   Everything hangs off one AudioContext created on the first user gesture.
+   Press M in-game to mute/unmute.
+   ============================================================ */
+const AUDIO={ ctx:null, master:null, on:true, started:false,
+  bedGain:null, airGain:null, staticGain:null, staticFilter:null,
+  heart:{next:0,rate:1.4}, nodes:[] };
+
+function audioInit(){
+  if(AUDIO.ctx) return;
+  try{
+    AUDIO.ctx=new (window.AudioContext||window.webkitAudioContext)();
+  }catch(err){ AUDIO.ctx=null; return; }
+  const ctx=AUDIO.ctx;
+  AUDIO.master=ctx.createGain(); AUDIO.master.gain.value=AUDIO.on?0.9:0.0;
+  AUDIO.master.connect(ctx.destination);
+}
+// (Re)start the continuous ambient layers. Called when a run begins.
+function audioStartAmbient(){
+  audioInit(); if(!AUDIO.ctx) return;
+  const ctx=AUDIO.ctx;
+  if(ctx.state==='suspended') ctx.resume();
+  if(AUDIO.started){ // already running — just make sure it's audible
+    if(AUDIO.bedGain) AUDIO.bedGain.gain.value=0.16;
+    if(AUDIO.airGain) AUDIO.airGain.gain.value=0.10;
+    return;
+  }
+  AUDIO.started=true;
+  const t0=ctx.currentTime;
+  // ---- BED: low drones (a minor-ish drone cluster) ----
+  AUDIO.bedGain=ctx.createGain(); AUDIO.bedGain.gain.value=0.0; AUDIO.bedGain.connect(AUDIO.master);
+  const bedFilter=ctx.createBiquadFilter(); bedFilter.type='lowpass'; bedFilter.frequency.value=420;
+  bedFilter.connect(AUDIO.bedGain);
+  [55,58.27,82.41].forEach((f,i)=>{                    // A1, ~A#1 (beating), E2
+    const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f;
+    const g=ctx.createGain(); g.gain.value=i===2?0.10:0.16;
+    // slow LFO on detune for a breathing, unstable drone
+    const lfo=ctx.createOscillator(); lfo.frequency.value=0.05+i*0.03;
+    const lg=ctx.createGain(); lg.gain.value=4+i*2;
+    lfo.connect(lg).connect(o.detune); lfo.start();
+    o.connect(g).connect(bedFilter); o.start();
+    AUDIO.nodes.push(o,lfo);
+  });
+  // sub pulse — a slow heartbeat-of-the-building under everything
+  const sub=ctx.createOscillator(); sub.type='sine'; sub.frequency.value=36;
+  const subg=ctx.createGain(); subg.gain.value=0.0; subg.connect(AUDIO.bedGain);
+  const subLfo=ctx.createOscillator(); subLfo.type='sine'; subLfo.frequency.value=0.22;
+  const subLg=ctx.createGain(); subLg.gain.value=0.18;
+  subLfo.connect(subLg).connect(subg.gain); subLfo.start();
+  sub.connect(subg); sub.start(); AUDIO.nodes.push(sub,subLfo);
+  // ---- AIR: looping filtered noise = room tone ----
+  const noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+  const nd=noiseBuf.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=(Math.random()*2-1);
+  const air=ctx.createBufferSource(); air.buffer=noiseBuf; air.loop=true;
+  const airF=ctx.createBiquadFilter(); airF.type='bandpass'; airF.frequency.value=600; airF.Q.value=0.6;
+  AUDIO.airGain=ctx.createGain(); AUDIO.airGain.gain.value=0.0;
+  air.connect(airF).connect(AUDIO.airGain).connect(AUDIO.master); air.start();
+  AUDIO.nodes.push(air);
+  // ---- STATIC: noise gated by the SIGNAL meter (set live in updateGlitch) ----
+  const statBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+  const sdv=statBuf.getChannelData(0); for(let i=0;i<sdv.length;i++) sdv[i]=(Math.random()*2-1);
+  const stat=ctx.createBufferSource(); stat.buffer=statBuf; stat.loop=true;
+  AUDIO.staticFilter=ctx.createBiquadFilter(); AUDIO.staticFilter.type='highpass'; AUDIO.staticFilter.frequency.value=1200;
+  AUDIO.staticGain=ctx.createGain(); AUDIO.staticGain.gain.value=0.0;
+  stat.connect(AUDIO.staticFilter).connect(AUDIO.staticGain).connect(AUDIO.master); stat.start();
+  AUDIO.nodes.push(stat);
+  // fade the bed + air in
+  AUDIO.bedGain.gain.setValueAtTime(0.0,t0); AUDIO.bedGain.gain.linearRampToValueAtTime(0.16,t0+2.5);
+  AUDIO.airGain.gain.setValueAtTime(0.0,t0); AUDIO.airGain.gain.linearRampToValueAtTime(0.10,t0+2.5);
+}
+// Fade ambient down (used when returning to menu / ending).
+function audioStopAmbient(){
+  if(!AUDIO.ctx||!AUDIO.started) return;
+  const t=AUDIO.ctx.currentTime;
+  [AUDIO.bedGain,AUDIO.airGain,AUDIO.staticGain].forEach(g=>{ if(g){ g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(0.0,t,0.4);} });
+}
+function audioToggleMute(){
+  AUDIO.on=!AUDIO.on;
+  if(AUDIO.master) AUDIO.master.gain.setTargetAtTime(AUDIO.on?0.9:0.0, AUDIO.ctx.currentTime, 0.05);
+  showToast('AUDIO '+(AUDIO.on?'ON':'MUTED')+'  ·  [ M ]');
+}
+// Per-frame audio reactivity: heartbeat rate from hunter proximity, static from glitch.
+function audioTick(dt){
+  if(!AUDIO.ctx||!AUDIO.started||!state) return;
+  const ctx=AUDIO.ctx, now=ctx.currentTime;
+  // ---- dynamic static from the SIGNAL meter ----
+  if(AUDIO.staticGain){
+    const g=Math.min(1,state.glitch||0);
+    AUDIO.staticGain.gain.setTargetAtTime(g*0.22, now, 0.08);
+    if(AUDIO.staticFilter) AUDIO.staticFilter.frequency.setTargetAtTime(1200-g*900, now, 0.1);
+  }
+  // ---- heartbeat: nearer hunter → faster & louder thumps ----
+  let near=999;
+  if(modelReady&&hunter.rig){ near=Math.hypot(player.pos.x-hunter.pos.x, player.pos.z-hunter.pos.z); }
+  const prox=Math.max(0,Math.min(1,(26-near)/26));     // 0 far → 1 point-blank
+  if(prox>0.02){
+    AUDIO.heart.next-=dt;
+    const rate=0.7+prox*2.6;                            // beats/sec
+    if(AUDIO.heart.next<=0){
+      AUDIO.heart.next=1/rate;
+      sfxHeartbeat(0.10+prox*0.5);
+    }
+  }
+  // tighten the air wash a touch when the hunter is close
+  if(AUDIO.airGain) AUDIO.airGain.gain.setTargetAtTime(0.10+prox*0.06, now, 0.2);
+}
+// ---- one-shot SFX helpers ----
+function _ensureCtx(){ audioInit(); return AUDIO.ctx; }
+function sfxHeartbeat(vol){
+  const ctx=AUDIO.ctx; if(!ctx) return; const t0=ctx.currentTime;
+  const o=ctx.createOscillator(); o.type='sine';
+  o.frequency.setValueAtTime(70,t0); o.frequency.exponentialRampToValueAtTime(36,t0+0.14);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.02,vol),t0+0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+0.22);
+  o.connect(g).connect(AUDIO.master); o.start(t0); o.stop(t0+0.25);
+}
+function sfxPickup(){
+  const ctx=_ensureCtx(); if(!ctx) return; const t0=ctx.currentTime;
+  [880,1320,1760].forEach((f,i)=>{                      // bright rising arpeggio
+    const o=ctx.createOscillator(); o.type='triangle'; o.frequency.value=f;
+    const g=ctx.createGain(); const st=t0+i*0.06;
+    g.gain.setValueAtTime(0.0001,st); g.gain.exponentialRampToValueAtTime(0.16,st+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,st+0.18);
+    o.connect(g).connect(AUDIO.master||ctx.destination); o.start(st); o.stop(st+0.2);
+  });
+}
+function sfxRewind(){
+  const ctx=_ensureCtx(); if(!ctx) return; const t0=ctx.currentTime;
+  // descending-then-reversing whir + noise sweep = "tape spun backwards"
+  const o=ctx.createOscillator(); o.type='sawtooth';
+  o.frequency.setValueAtTime(1200,t0);
+  o.frequency.exponentialRampToValueAtTime(180,t0+0.45);
+  o.frequency.exponentialRampToValueAtTime(900,t0+0.9);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(0.16,t0+0.03); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.9);
+  o.connect(g).connect(AUDIO.master||ctx.destination); o.start(t0); o.stop(t0+0.95);
+  // noise warble
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.9,ctx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.4;
+  const ns=ctx.createBufferSource(); ns.buffer=buf;
+  const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.setValueAtTime(400,t0);
+  f.frequency.linearRampToValueAtTime(2400,t0+0.9); f.Q.value=2;
+  const ng=ctx.createGain(); ng.gain.setValueAtTime(0.14,t0); ng.gain.exponentialRampToValueAtTime(0.0001,t0+0.9);
+  ns.connect(f).connect(ng).connect(AUDIO.master||ctx.destination); ns.start(t0);
+}
+function sfxTeleport(){
+  const ctx=_ensureCtx(); if(!ctx) return; const t0=ctx.currentTime;
+  const o=ctx.createOscillator(); o.type='sine';
+  o.frequency.setValueAtTime(300,t0); o.frequency.exponentialRampToValueAtTime(1400,t0+0.25);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(0.16,t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.35);
+  o.connect(g).connect(AUDIO.master||ctx.destination); o.start(t0); o.stop(t0+0.4);
+}
+function sfxAccept(){
+  const ctx=_ensureCtx(); if(!ctx) return; const t0=ctx.currentTime;
+  [523,659,784,1047].forEach((f,i)=>{                   // C-E-G-C major fanfare
+    const o=ctx.createOscillator(); o.type='square'; o.frequency.value=f;
+    const g=ctx.createGain(); const st=t0+i*0.1;
+    g.gain.setValueAtTime(0.0001,st); g.gain.exponentialRampToValueAtTime(0.12,st+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,st+0.4);
+    o.connect(g).connect(AUDIO.master||ctx.destination); o.start(st); o.stop(st+0.42);
+  });
+}
+function sfxWin(){ sfxAccept(); }
+function sfxCaught(){
+  const ctx=_ensureCtx(); if(!ctx) return; const t0=ctx.currentTime;
+  // deep detuned drop + noise hit
+  [110,116].forEach(f=>{
+    const o=ctx.createOscillator(); o.type='sawtooth';
+    o.frequency.setValueAtTime(f,t0); o.frequency.exponentialRampToValueAtTime(f*0.4,t0+1.2);
+    const g=ctx.createGain(); g.gain.setValueAtTime(0.22,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+1.3);
+    o.connect(g).connect(AUDIO.master||ctx.destination); o.start(t0); o.stop(t0+1.35);
+  });
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.6,ctx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+  const ns=ctx.createBufferSource(); ns.buffer=buf;
+  const ng=ctx.createGain(); ng.gain.setValueAtTime(0.3,t0); ng.gain.exponentialRampToValueAtTime(0.0001,t0+0.6);
+  ns.connect(ng).connect(AUDIO.master||ctx.destination); ns.start(t0);
+}
+// Synthesize a short, harsh alarm with the WebAudio API (no asset needed).
+function playMimicAlarm(){
+  const ctx=_ensureCtx(); if(!ctx) return;
+  try{
+    const t0=ctx.currentTime;
+    const out=AUDIO.master||ctx.destination;
+    // two detuned saw tones sweeping down = nasty buzzer
+    [220,233].forEach((f)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sawtooth';o.frequency.setValueAtTime(f*3,t0);
+      o.frequency.exponentialRampToValueAtTime(f,t0+0.5);
+      g.gain.setValueAtTime(0.0001,t0);
+      g.gain.exponentialRampToValueAtTime(0.18,t0+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+0.55);
+      o.connect(g).connect(out);o.start(t0);o.stop(t0+0.6);
+    });
+    // a burst of noise on top
+    const buf=ctx.createBuffer(1,ctx.sampleRate*0.25,ctx.sampleRate);
+    const dch=buf.getChannelData(0);for(let i=0;i<dch.length;i++)dch[i]=(Math.random()*2-1)*0.5;
+    const ns=ctx.createBufferSource();ns.buffer=buf;
+    const ng=ctx.createGain();ng.gain.setValueAtTime(0.12,t0);ng.gain.exponentialRampToValueAtTime(0.0001,t0+0.25);
+    ns.connect(ng).connect(out);ns.start(t0);
+  }catch(err){/* audio not available — fail silently */}
+}
+
+const isize=document.getElementById('isize'),ifill=document.getElementById('ifill');
+const tapeline=document.getElementById('tapeline');
+const hudPos=document.getElementById('hud-pos'),hudTapes=document.getElementById('hud-tapes'),
+      hudHunter=document.getElementById('hud-hunter');
+function refreshTape(){const n=Math.max(14,Math.min(40,(+isize.value)|0));
+  tapeline.textContent=`TAPES TO COLLECT: ${computeTapeCount(n)}`;}
+isize.addEventListener('input',refreshTape);refreshTape();
+document.getElementById('go').addEventListener('click',startGame);
+document.getElementById('panel-submit').addEventListener('click',submitCode);
+document.getElementById('panel-close').addEventListener('click',closePanel);
+document.getElementById('end-menu').addEventListener('click',returnToMenu);
+
+init();
+loadHunter();
+loadTapeModel();
+</script>
+</body>
+</html>
