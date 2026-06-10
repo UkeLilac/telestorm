@@ -234,7 +234,7 @@
     <div><span class="k">HUNTER</span> <span class="r" id="hud-hunter">searching</span></div>
   </div>
   <div class="corner" id="bl">
-    <div class="k kbd-only">WASD walk &middot; MOUSE look &middot; SHIFT run</div>
+    <div class="k kbd-only">WASD walk &middot; MOUSE look &middot; CTRL run</div>
     <div class="k kbd-only">E interact &middot; F door &middot; R rewind &middot; ESC release</div>
     <div class="r" style="margin-top:4px">DON'T STARE AT IT — look away to stay stable</div>
     <div class="k" style="margin-top:6px">STAMINA</div>
@@ -284,7 +284,7 @@
     </div>
   </div>
   <div id="load">decoding model…</div>
-  <div id="hint">WASD move · MOUSE look · SHIFT run · F doors · [ R ] rewind · [ M ] mute<br>collect every tape, but don't stare at it — and not every tape is real.</div>
+  <div id="hint">WASD move · MOUSE look · CTRL run · F doors · [ R ] rewind · [ M ] mute<br>collect every tape, but don't stare at it — and not every tape is real.</div>
 </div>
 <div id="end"><h2 class="flick" id="end-title">SIGNAL EXTRACTED</h2><p style="color:var(--phosphor-dim);margin-top:10px" id="end-sub">all tapes recovered — reload for a new floor</p>
   <button id="end-menu">RETURN TO MENU &middot; 返回主页</button>
@@ -310,7 +310,7 @@
         </svg>
       </span>
       <span class="ds-name">电脑端<span class="en">DESKTOP</span></span>
-      <span class="ds-ctrls"><b>WASD</b> 移动 · <b>鼠标</b> 视角<br><b>Shift</b> 奔跑 · <b>E / F / R</b> 交互</span>
+      <span class="ds-ctrls"><b>WASD</b> 移动 · <b>鼠标</b> 视角<br><b>Ctrl</b> 奔跑 · <b>E / F / R</b> 交互</span>
       <span class="ds-go">▸ 进入 ENTER</span>
     </button>
     <button class="ds-card" id="ds-mobile" type="button">
@@ -1358,48 +1358,89 @@ function init(){
     camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
     if(composer)composer.setSize(innerWidth,innerHeight);
     if(glitchPass)glitchPass.uniforms.uRes.value.set(innerWidth,innerHeight);});
-  addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;
+  // ---- IME-proof keyboard input -------------------------------------------
+  // Chinese / Japanese / Korean input methods (输入法) make e.key unreliable:
+  // while the IME is active a letter keydown can report e.key === 'Process'
+  // (or ''), and the matching keyup may never reach the page — so keys[] gets a
+  // junk entry that never clears and a movement key "sticks" (卡住). e.code is
+  // the PHYSICAL key and is completely unaffected by the IME, so we key off that
+  // instead, falling back to e.key only on the rare device with no e.code.
+  function codeToKey(e){
+    const c=e.code;
+    if(c){
+      if(c.startsWith('Key'))   return c.slice(3).toLowerCase();   // KeyW -> w
+      if(c.startsWith('Digit'))  return c.slice(5);                // Digit5 -> 5
+      if(c.startsWith('Numpad')){ const n=c.slice(6); if(/^[0-9]$/.test(n)) return n; }
+      if(c==='ShiftLeft'||c==='ShiftRight')     return 'shift';
+      if(c==='ControlLeft'||c==='ControlRight') return 'control';
+      if(c==='AltLeft'||c==='AltRight')         return 'alt';
+      if(c==='Space')        return ' ';
+      if(c==='BracketLeft')  return '[';
+      if(c==='BracketRight') return ']';
+      if(c==='Semicolon')    return ';';
+      if(c==='Quote')        return "'";
+      if(c==='Backspace')    return 'backspace';
+      if(c==='Enter'||c==='NumpadEnter') return 'enter';
+      if(c==='Escape')       return 'escape';
+    }
+    return (e.key||'').toLowerCase();
+  }
+  // keys the game owns during play — swallowing them stops the IME composing
+  const GAME_KEYS=new Set(['w','a','s','d','control','e','f','r','o','h','g','m','[',']',';',"'"]);
+  function clearKeys(){ for(const k in keys) keys[k]=false; }
+
+  addEventListener('keydown',e=>{
+    if(e.repeat){ if(GAME_KEYS.has(codeToKey(e))&&document.pointerLockElement)e.preventDefault(); return; }
+    const k=codeToKey(e);
+    keys[k]=true;
     // ---- escape code panel input ----
     if(state&&state.panelOpen){
-      if(/^[0-9]$/.test(e.key)){ panelInput(e.key); }
-      else if(e.key==='Backspace'){ panelBackspace(); }
-      else if(e.key==='Enter'){ submitCode(); }
-      else if(e.key==='Escape'){ closePanel(); }
+      if(/^[0-9]$/.test(k)){ panelInput(k); e.preventDefault(); }
+      else if(k==='backspace'){ panelBackspace(); e.preventDefault(); }
+      else if(k==='enter'){ submitCode(); e.preventDefault(); }
+      else if(k==='escape'){ closePanel(); }
       return;
     }
-    if(e.key.toLowerCase()==='e'&&state){ doInteract(); }
-    if(e.key.toLowerCase()==='f'&&state&&!state.panelOpen){ tryDoorTeleport(); }
-    if(e.key.toLowerCase()==='r'&&state&&!state.panelOpen){ triggerRewind(); }
-    if(e.key.toLowerCase()==='o'){   // toggle outline
+    if(k==='e'&&state){ doInteract(); }
+    if(k==='f'&&state&&!state.panelOpen){ tryDoorTeleport(); }
+    if(k==='r'&&state&&!state.panelOpen){ triggerRewind(); }
+    if(k==='o'){   // toggle outline
       MOEBIUS.outline=!MOEBIUS.outline;
       showToast('OUTLINE '+(MOEBIUS.outline?'ON':'OFF')+' — restart floor to apply');
     }
-    if(e.key.toLowerCase()==='h'){   // toggle terminator hatch live (no restart)
+    if(k==='h'){   // toggle terminator hatch live (no restart)
       HATCH=HATCH>0?0:0.5;
       MB_SHADERS.forEach(u=>{u.value=HATCH;});
       showToast('HATCH '+(HATCH>0?'ON':'OFF — fully flat'));
     }
-    if(e.key.toLowerCase()==='g'){   // cycle colour-grade strength live (no restart)
+    if(k==='g'){   // cycle colour-grade strength live (no restart)
       const steps=[0.0,0.1,0.3,0.6,0.9];
       let idx=steps.findIndex(s=>Math.abs(s-CEL)<1e-3); if(idx<0)idx=0;
       CEL=steps[(idx+1)%steps.length];
       MB_CEL.forEach(u=>{u.value=CEL;});
       showToast('GRADE '+Math.round(CEL*100)+'%'+(CEL<0.01?' — off (raw lit)':''));
     }
-    if(e.key.toLowerCase()==='m'){ audioToggleMute(); }   // mute / unmute all audio
+    if(k==='m'){ audioToggleMute(); }   // mute / unmute all audio
     // ---- hunter posture debug keys ----
     if(modelReady&&hunter.rig){
       let changed=false;
-      if(e.key==='[' ){hunter.fixX-=Math.PI/12;changed=true;}
-      if(e.key===']' ){hunter.fixX+=Math.PI/12;changed=true;}
-      if(e.key===';' ){hunter.fixY-=Math.PI/12;changed=true;}
-      if(e.key==="'" ){hunter.fixY+=Math.PI/12;changed=true;}
+      if(k==='[' ){hunter.fixX-=Math.PI/12;changed=true;}
+      if(k===']' ){hunter.fixX+=Math.PI/12;changed=true;}
+      if(k===';' ){hunter.fixY-=Math.PI/12;changed=true;}
+      if(k==="'" ){hunter.fixY+=Math.PI/12;changed=true;}
       if(changed){fitHunter();
         const dg=r=>Math.round(r*180/Math.PI);
         document.getElementById('hud-hunter').textContent=`fixX ${dg(hunter.fixX)}° fixY ${dg(hunter.fixY)}°`;}
     }
+    // While the pointer is locked (actively playing) swallow our own keys so the
+    // browser never hands them to an IME — this is what kills the stuck key.
+    if(GAME_KEYS.has(k) && document.pointerLockElement){ e.preventDefault(); }
   });
-  addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+  addEventListener('keyup',e=>{ keys[codeToKey(e)]=false; });
+  // Lose focus / hide the tab / release the mouse → drop every held key, so a
+  // keyup eaten by the IME can never leave something pressed forever.
+  addEventListener('blur', clearKeys);
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) clearKeys(); });
   // ---- mouse look (spike-proof) ----
   // Browsers occasionally emit one giant movementX/Y: the "catch-up" delta the
   // instant pointer-lock is acquired, or a random hiccup. Either caused the view
@@ -1446,6 +1487,7 @@ function buildTerminal(){
 
 function startGame(){
   if(!modelReady)return;
+  sfxMenuPower();        // a short power-up sweep as you drop into the floor
   audioStartAmbient();   // kick on the ambient music bed (first user gesture = this click)
   N=Math.max(14,Math.min(40,(+isize.value)|0));WORLD=N*CELL;
   const segCount=(+ifill.value);
@@ -1669,7 +1711,7 @@ function updatePlayer(dt){
   const tj = touch.enabled ? touch.move : {x:0,y:0};
   const joyActive = (tj.x*tj.x + tj.y*tj.y) > 0.0016;
   const moving=keys['w']||keys['a']||keys['s']||keys['d']||joyActive;
-  const wantSprint = !!keys['shift'] || (touch.enabled && touch.sprint);
+  const wantSprint = !!keys['control'] || (touch.enabled && touch.sprint);
   const sprinting = wantSprint && moving && state.stam>0 && !state.winded;
   if(sprinting){
     state.stam=Math.max(0,state.stam-dt*0.28);            // ~3.6s of sprint from full
@@ -1922,6 +1964,8 @@ function springMimicTrap(i){
    ============================================================ */
 const AUDIO={ ctx:null, master:null, on:true, started:false,
   bedGain:null, airGain:null, staticGain:null, staticFilter:null,
+  menuGain:null, menuStarted:false, echo:null,
+  elapsed:0, randNext:1e9,                 // run clock + next random-stinger time
   heart:{next:0,rate:1.4}, nodes:[] };
 
 function audioInit(){
@@ -1930,7 +1974,7 @@ function audioInit(){
     AUDIO.ctx=new (window.AudioContext||window.webkitAudioContext)();
   }catch(err){ AUDIO.ctx=null; return; }
   const ctx=AUDIO.ctx;
-  AUDIO.master=ctx.createGain(); AUDIO.master.gain.value=AUDIO.on?0.9:0.0;
+  AUDIO.master=ctx.createGain(); AUDIO.master.gain.value=AUDIO.on?0.8:0.0;
   AUDIO.master.connect(ctx.destination);
 }
 // (Re)start the continuous ambient layers. Called when a run begins.
@@ -1938,9 +1982,12 @@ function audioStartAmbient(){
   audioInit(); if(!AUDIO.ctx) return;
   const ctx=AUDIO.ctx;
   if(ctx.state==='suspended') ctx.resume();
+  audioMenuStop();                          // hand off from the menu pad
+  AUDIO.elapsed=0;                          // restart the run clock...
+  AUDIO.randNext=30+Math.random()*22;       // ...first random sound ~30–52s in
   if(AUDIO.started){ // already running — just make sure it's audible
-    if(AUDIO.bedGain) AUDIO.bedGain.gain.value=0.16;
-    if(AUDIO.airGain) AUDIO.airGain.gain.value=0.10;
+    if(AUDIO.bedGain) AUDIO.bedGain.gain.value=0.08;
+    if(AUDIO.airGain) AUDIO.airGain.gain.value=0.045;
     return;
   }
   AUDIO.started=true;
@@ -1983,8 +2030,8 @@ function audioStartAmbient(){
   stat.connect(AUDIO.staticFilter).connect(AUDIO.staticGain).connect(AUDIO.master); stat.start();
   AUDIO.nodes.push(stat);
   // fade the bed + air in
-  AUDIO.bedGain.gain.setValueAtTime(0.0,t0); AUDIO.bedGain.gain.linearRampToValueAtTime(0.16,t0+2.5);
-  AUDIO.airGain.gain.setValueAtTime(0.0,t0); AUDIO.airGain.gain.linearRampToValueAtTime(0.10,t0+2.5);
+  AUDIO.bedGain.gain.setValueAtTime(0.0,t0); AUDIO.bedGain.gain.linearRampToValueAtTime(0.08,t0+2.5);
+  AUDIO.airGain.gain.setValueAtTime(0.0,t0); AUDIO.airGain.gain.linearRampToValueAtTime(0.045,t0+2.5);
 }
 // Fade ambient down (used when returning to menu / ending).
 function audioStopAmbient(){
@@ -1994,7 +2041,7 @@ function audioStopAmbient(){
 }
 function audioToggleMute(){
   AUDIO.on=!AUDIO.on;
-  if(AUDIO.master) AUDIO.master.gain.setTargetAtTime(AUDIO.on?0.9:0.0, AUDIO.ctx.currentTime, 0.05);
+  if(AUDIO.master) AUDIO.master.gain.setTargetAtTime(AUDIO.on?0.8:0.0, AUDIO.ctx.currentTime, 0.05);
   showToast('AUDIO '+(AUDIO.on?'ON':'MUTED')+'  ·  [ M ]');
 }
 // Per-frame audio reactivity: heartbeat rate from hunter proximity, static from glitch.
@@ -2004,7 +2051,7 @@ function audioTick(dt){
   // ---- dynamic static from the SIGNAL meter ----
   if(AUDIO.staticGain){
     const g=Math.min(1,state.glitch||0);
-    AUDIO.staticGain.gain.setTargetAtTime(g*0.22, now, 0.08);
+    AUDIO.staticGain.gain.setTargetAtTime(g*0.12, now, 0.08);
     if(AUDIO.staticFilter) AUDIO.staticFilter.frequency.setTargetAtTime(1200-g*900, now, 0.1);
   }
   // ---- heartbeat: nearer hunter → faster & louder thumps ----
@@ -2020,7 +2067,15 @@ function audioTick(dt){
     }
   }
   // tighten the air wash a touch when the hunter is close
-  if(AUDIO.airGain) AUDIO.airGain.gain.setTargetAtTime(0.10+prox*0.06, now, 0.2);
+  if(AUDIO.airGain) AUDIO.airGain.gain.setTargetAtTime(0.045+prox*0.05, now, 0.2);
+  // ---- random ambient stingers: once you've been in here a while, the building
+  //      starts making distant noises at irregular intervals (rarer when chased) ----
+  AUDIO.elapsed+=dt;
+  AUDIO.randNext-=dt;
+  if(AUDIO.randNext<=0){
+    sfxRandomAmbience(prox);
+    AUDIO.randNext = 16 + Math.random()*26 + prox*14;   // 16–42s, stretched if near
+  }
 }
 // ---- one-shot SFX helpers ----
 function _ensureCtx(){ audioInit(); return AUDIO.ctx; }
@@ -2121,6 +2176,170 @@ function playMimicAlarm(){
   }catch(err){/* audio not available — fail silently */}
 }
 
+/* ============================================================
+   AMBIENT ECHO BUS  —  cheap feedback delay shared by stingers, for "distance"
+   ============================================================ */
+function _echoBus(){
+  const ctx=AUDIO.ctx; if(!ctx) return null;
+  if(AUDIO.echo) return AUDIO.echo;
+  const input=ctx.createGain();
+  const delay=ctx.createDelay(1.2); delay.delayTime.value=0.27;
+  const fb=ctx.createGain(); fb.gain.value=0.36;
+  const tone=ctx.createBiquadFilter(); tone.type='lowpass'; tone.frequency.value=2600;
+  const wet=ctx.createGain(); wet.gain.value=0.55;
+  input.connect(delay); delay.connect(tone); tone.connect(fb); fb.connect(delay);
+  tone.connect(wet); wet.connect(AUDIO.master||ctx.destination);
+  input.connect(AUDIO.master||ctx.destination);            // dry path
+  AUDIO.echo=input; return input;
+}
+
+/* ============================================================
+   MENU AUDIO  —  light UI sfx + a very quiet title-screen pad
+   (everything routes through AUDIO.master, so M / mute still applies)
+   ============================================================ */
+function sfxUiHover(){
+  const ctx=_ensureCtx(); if(!ctx) return; const t0=ctx.currentTime;
+  const o=ctx.createOscillator(); o.type='triangle'; o.frequency.value=1180;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(0.035,t0+0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+0.07);
+  o.connect(g).connect(AUDIO.master||ctx.destination); o.start(t0); o.stop(t0+0.09);
+}
+function sfxUiClick(){
+  const ctx=_ensureCtx(); if(!ctx) return; const t0=ctx.currentTime;
+  [660,990].forEach((f,i)=>{
+    const o=ctx.createOscillator(); o.type='square'; o.frequency.value=f;
+    const g=ctx.createGain(); const st=t0+i*0.045;
+    g.gain.setValueAtTime(0.0001,st); g.gain.exponentialRampToValueAtTime(0.06,st+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001,st+0.1);
+    o.connect(g).connect(AUDIO.master||ctx.destination); o.start(st); o.stop(st+0.12);
+  });
+}
+function sfxMenuPower(){   // used when a device is chosen / the title boots up
+  const ctx=_ensureCtx(); if(!ctx) return; const t0=ctx.currentTime;
+  const o=ctx.createOscillator(); o.type='sawtooth';
+  o.frequency.setValueAtTime(90,t0); o.frequency.exponentialRampToValueAtTime(680,t0+0.4);
+  const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.setValueAtTime(300,t0);
+  f.frequency.exponentialRampToValueAtTime(2600,t0+0.4);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(0.09,t0+0.06); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.55);
+  o.connect(f).connect(g).connect(AUDIO.master||ctx.destination); o.start(t0); o.stop(t0+0.6);
+}
+// soft, very quiet title-screen pad. Starts on the first menu gesture, fades on play.
+function audioMenuStart(){
+  audioInit(); if(!AUDIO.ctx||AUDIO.menuStarted||AUDIO.started) return;
+  const ctx=AUDIO.ctx; if(ctx.state==='suspended') ctx.resume();
+  AUDIO.menuStarted=true;
+  const t0=ctx.currentTime;
+  AUDIO.menuGain=ctx.createGain(); AUDIO.menuGain.gain.value=0.0; AUDIO.menuGain.connect(AUDIO.master);
+  const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900; lp.connect(AUDIO.menuGain);
+  [110,164.81,220].forEach((f,i)=>{                        // A2 · E3 · A3 — open, calm
+    const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const g=ctx.createGain(); g.gain.value=i===2?0.5:0.8;
+    const lfo=ctx.createOscillator(); lfo.type='sine'; lfo.frequency.value=0.07+i*0.02;
+    const lg=ctx.createGain(); lg.gain.value=2.5; lfo.connect(lg).connect(o.detune); lfo.start();
+    o.connect(g).connect(lp); o.start(); AUDIO.nodes.push(o,lfo);
+  });
+  AUDIO.menuGain.gain.linearRampToValueAtTime(0.05,t0+1.6); // intentionally gentle
+}
+function audioMenuStop(){
+  if(!AUDIO.ctx||!AUDIO.menuGain) return;
+  const t=AUDIO.ctx.currentTime;
+  AUDIO.menuGain.gain.cancelScheduledValues(t);
+  AUDIO.menuGain.gain.setTargetAtTime(0.0,t,0.3);
+}
+// hover + click sfx on every menu button (call once during setup)
+function wireMenuAudio(){
+  const sel='#device-select .ds-card, #go, #change-device, #end-menu, #panel-submit, #panel-close';
+  document.querySelectorAll(sel).forEach(el=>{
+    el.addEventListener('pointerenter',()=>{ if(!el.disabled) sfxUiHover(); });
+    el.addEventListener('click',()=>{ if(!el.disabled) sfxUiClick(); });
+  });
+  // first interaction anywhere wakes the AudioContext + the title pad
+  const wake=()=>{ audioInit(); if(AUDIO.ctx&&AUDIO.ctx.state==='suspended')AUDIO.ctx.resume();
+    if(!AUDIO.started) audioMenuStart(); };
+  window.addEventListener('pointerdown',wake,{once:true});
+}
+
+/* ============================================================
+   RANDOM AMBIENT STINGERS  —  distant, irregular "the building is alive" sounds
+   ============================================================ */
+function stingerClang(v){                                  // distant metal hit
+  const ctx=AUDIO.ctx,out=_echoBus(); if(!ctx) return; const t0=ctx.currentTime, base=150+Math.random()*120;
+  [1,2.76,5.4,8.21].forEach((m,i)=>{
+    const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=base*m;
+    const g=ctx.createGain(); const peak=v*(i===0?0.7:0.28/i);
+    g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(peak,t0+0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+0.9+Math.random()*0.6);
+    o.connect(g).connect(out); o.start(t0); o.stop(t0+1.8);
+  });
+}
+function stingerKnock(v){                                   // two slow distant knocks
+  const ctx=AUDIO.ctx,out=_echoBus(); if(!ctx) return; const t0=ctx.currentTime;
+  [0,0.17+Math.random()*0.12].forEach(off=>{
+    const o=ctx.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(95,t0+off); o.frequency.exponentialRampToValueAtTime(48,t0+off+0.12);
+    const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t0+off);
+    g.gain.exponentialRampToValueAtTime(v*0.6,t0+off+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t0+off+0.2);
+    o.connect(g).connect(out); o.start(t0+off); o.stop(t0+off+0.25);
+  });
+}
+function stingerWhoosh(v){                                  // low air movement passing by
+  const ctx=AUDIO.ctx; if(!ctx) return; const t0=ctx.currentTime, dur=1.1+Math.random()*0.6;
+  const buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+  const ns=ctx.createBufferSource(); ns.buffer=buf;
+  const f=ctx.createBiquadFilter(); f.type='bandpass'; f.Q.value=0.8;
+  f.frequency.setValueAtTime(180,t0); f.frequency.exponentialRampToValueAtTime(1400,t0+dur*0.5);
+  f.frequency.exponentialRampToValueAtTime(220,t0+dur);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t0);
+  g.gain.linearRampToValueAtTime(v*0.5,t0+dur*0.45); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  ns.connect(f).connect(g).connect(AUDIO.master||ctx.destination); ns.start(t0);
+}
+function stingerWarble(v){                                  // faraway tape/whistle wobble
+  const ctx=AUDIO.ctx,out=_echoBus(); if(!ctx) return; const t0=ctx.currentTime, dur=0.8+Math.random()*0.5;
+  const o=ctx.createOscillator(); o.type='sine';
+  const f0=300+Math.random()*240; o.frequency.setValueAtTime(f0,t0);
+  o.frequency.exponentialRampToValueAtTime(f0*0.7,t0+dur);
+  const lfo=ctx.createOscillator(); lfo.type='sine'; lfo.frequency.value=5+Math.random()*4;
+  const lg=ctx.createGain(); lg.gain.value=14; lfo.connect(lg).connect(o.frequency); lfo.start(t0);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(v*0.4,t0+0.08); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.connect(g).connect(out); o.start(t0); o.stop(t0+dur+0.05); lfo.stop(t0+dur+0.05);
+}
+function stingerMotif(v){                                   // a few quiet, eerie notes
+  const ctx=AUDIO.ctx,out=_echoBus(); if(!ctx) return; const t0=ctx.currentTime;
+  const scale=[220,261.63,293.66,329.63,392];              // A minor pentatonic
+  const n=3+((Math.random()*2)|0); let prev=-1;
+  for(let i=0;i<n;i++){
+    let idx; do{ idx=(Math.random()*scale.length)|0; }while(idx===prev); prev=idx;
+    const f=scale[idx]*(Math.random()<0.5?1:0.5);          // sometimes an octave down
+    const st=t0+i*(0.26+Math.random()*0.1);
+    const o=ctx.createOscillator(); o.type=Math.random()<0.5?'sine':'triangle'; o.frequency.value=f;
+    const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,st);
+    g.gain.linearRampToValueAtTime(v*0.32,st+0.05); g.gain.exponentialRampToValueAtTime(0.0001,st+0.7);
+    o.connect(g).connect(out); o.start(st); o.stop(st+0.75);
+  }
+}
+function stingerWhisper(v){                                 // breathy filtered-noise swell
+  const ctx=AUDIO.ctx,out=_echoBus(); if(!ctx) return; const t0=ctx.currentTime, dur=0.7+Math.random()*0.5;
+  const buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+  const ns=ctx.createBufferSource(); ns.buffer=buf;
+  const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1600+Math.random()*900; f.Q.value=6;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t0);
+  g.gain.linearRampToValueAtTime(v*0.3,t0+dur*0.4); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  ns.connect(f).connect(g).connect(out); ns.start(t0);
+}
+// pick one at random; volume eases off a touch when the hunter is close (heartbeat owns that space)
+function sfxRandomAmbience(prox){
+  if(!AUDIO.ctx||!AUDIO.started) return;
+  const v=0.85-(prox||0)*0.35;                             // global stinger loudness (already quiet)
+  const pool=[stingerMotif,stingerClang,stingerWhoosh,stingerWarble,stingerKnock,stingerWhisper,
+              stingerMotif,stingerWhoosh];                 // motif/whoosh weighted a bit higher
+  pool[(Math.random()*pool.length)|0](v);
+}
+
 const isize=document.getElementById('isize'),ifill=document.getElementById('ifill');
 const tapeline=document.getElementById('tapeline');
 const hudPos=document.getElementById('hud-pos'),hudTapes=document.getElementById('hud-tapes'),
@@ -2175,13 +2394,15 @@ function isLikelyMobile(){
   return uaHit || (touchHit && small);
 }
 function chooseDevice(dev){
+  audioInit(); if(AUDIO.ctx&&AUDIO.ctx.state==='suspended')AUDIO.ctx.resume();
+  sfxMenuPower(); if(!AUDIO.started) audioMenuStart();
   DEVICE=dev; touch.enabled=(dev==='mobile');
   document.body.classList.toggle('mobile',touch.enabled);
   const hint=document.getElementById('hint');
   if(hint){
     hint.innerHTML = touch.enabled
       ? '左侧摇杆 移动 · 右侧滑动 视角 · RUN 奔跑 · E 互动 · F 传送门 · R 倒带<br>收集全部磁带，但别盯着它看 —— 而且不是每盘磁带都是真的。'
-      : "WASD move · MOUSE look · SHIFT run · F doors · [ R ] rewind · [ M ] mute<br>collect every tape, but don't stare at it — and not every tape is real.";
+      : "WASD move · MOUSE look · CTRL run · F doors · [ R ] rewind · [ M ] mute<br>collect every tape, but don't stare at it — and not every tape is real.";
   }
   const ds=document.getElementById('device-select');
   ds.classList.add('closing');
@@ -2281,6 +2502,7 @@ function setupInterface(){
   document.getElementById('ds-mobile').addEventListener('click',()=>chooseDevice('mobile'));
   document.getElementById('change-device').addEventListener('click',openDevicePicker);
   setupTouchControls();
+  wireMenuAudio();
 }
 
 setupInterface();
